@@ -536,7 +536,7 @@ CHIP_OBJS = jedec.o stm50.o w39.o w29ee011.o \
 ###############################################################################
 # Library code.
 
-LIB_OBJS = libflashrom.o layout.o flashrom.o udelay.o programmer.o helpers.o ich_descriptors.o fmap.o
+LIB_OBJS = libflashrom.o layout.o flashrom.o udelay.o programmer.o helpers.o ich_descriptors.o
 
 ###############################################################################
 # Frontend related stuff.
@@ -1062,7 +1062,7 @@ endif
 $(PROGRAM)$(EXEC_SUFFIX): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROGRAM)$(EXEC_SUFFIX) $(OBJS) $(LIBS) $(PCILIBS) $(FEATURE_LIBS) $(USBLIBS) $(USB1LIBS)
 
-libflashrom.a: $(LIBFLASHROM_OBJS)
+libflashrom.a: $(LIBFLASHROM_OBJS) print.o cli_common.o
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
 
