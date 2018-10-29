@@ -135,7 +135,7 @@ const char **flashrom_supported_programmers(void)
 
 /**
  * @brief Returns list of supported flash chips
- * @return List of supported flash ROM chips
+ * @return List of supported flash chips
  */
 flashrom_flashchip_info *flashrom_supported_flash_chips(void)
 {
