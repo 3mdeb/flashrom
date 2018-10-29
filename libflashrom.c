@@ -123,7 +123,7 @@ const char **flashrom_supported_programmers(void)
 	supported_programmers = malloc((PROGRAMMER_INVALID + 1) * sizeof(char*));
 
 	if (supported_programmers != NULL) {
-		for (; p < PROGRAMMER_INVALID; ++p){
+		for (; p < PROGRAMMER_INVALID; ++p) {
 			supported_programmers[p] = programmer_table[p].name;
 		}
 	} else {
@@ -177,7 +177,7 @@ flashrom_board_info *flashrom_supported_boards(void)
 
 	flashrom_board_info *supported_boards = malloc(boards_known_size * sizeof(flashrom_board_info));
 
-	if (supported_boards != NULL){
+	if (supported_boards != NULL) {
 		for (; i < boards_known_size; ++i) {
 			supported_boards[i].vendor = binfo[i].vendor;
 			supported_boards[i].name = binfo[i].name;
@@ -208,7 +208,7 @@ flashrom_chipset_info *flashrom_supported_chipsets(void)
 
 	flashrom_chipset_info *supported_chipsets = malloc(chipset_enbales_size * sizeof(flashrom_chipset_info));
 
-	if (supported_chipsets != NULL){
+	if (supported_chipsets != NULL) {
 		for (; i < chipset_enbales_size; ++i) {
 			supported_chipsets[i].vendor = chipset[i].vendor_name;
 			supported_chipsets[i].chipset = chipset[i].device_name;
