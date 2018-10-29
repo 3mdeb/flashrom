@@ -39,6 +39,37 @@
 
 /** Pointer to log callback function. */
 static flashrom_log_callback *global_log_callback = NULL;
+enum flashrom_log_level verbose_screen = FLASHROM_MSG_INFO;
+static FILE *logfile = NULL;
+
+int flashrom_print_cb(enum flashrom_log_level level, const char *fmt, va_list ap)
+{
+	int ret = 0;
+	FILE *output_type = stdout;
+
+	va_list logfile_args;
+	va_copy(logfile_args, ap);
+
+	if (level < FLASHROM_MSG_INFO)
+		output_type = stderr;
+
+	if (level <= verbose_screen) {
+		ret = vfprintf(output_type, fmt, ap);
+		/* msg_*spew often happens inside chip accessors in possibly
+		 * time-critical operations. Don't slow them down by flushing. */
+		if (level != FLASHROM_MSG_SPEW)
+			fflush(output_type);
+	}
+#ifndef STANDALONE
+	if ((level <= verbose_logfile) && logfile) {
+		ret = vfprintf(logfile, fmt, logfile_args);
+		if (level != FLASHROM_MSG_SPEW)
+			fflush(logfile);
+	}
+#endif /* !STANDALONE */
+	va_end(logfile_args);
+	return ret;
+}
 
 /**
  * @brief Initialize libflashrom.
@@ -127,7 +158,7 @@ const char **flashrom_supported_programmers(void)
 			supported_programmers[p] = programmer_table[p].name;
 		}
 	} else {
-		msg_gerr("Memory allocation error!");
+		msg_gerr("Memory allocation error!\n");
 	}
 
 	return supported_programmers;
@@ -153,7 +184,7 @@ flashrom_flashchip_info *flashrom_supported_flash_chips(void)
 			supported_flashchips[i].total_size = flashchips[i].total_size;
 		}
 	} else {
-		msg_gerr("Memory allocation error!");
+		msg_gerr("Memory allocation error!\n");
 	}
 
 	return supported_flashchips;
@@ -184,7 +215,7 @@ flashrom_board_info *flashrom_supported_boards(void)
 			supported_boards[i].working = binfo[i].working;
 		}
 	} else {
-		msg_gerr("Memory allocation error!");
+		msg_gerr("Memory allocation error!\n");
 	}
 
 	return supported_boards;
@@ -217,7 +248,7 @@ flashrom_chipset_info *flashrom_supported_chipsets(void)
 			supported_chipsets[i].status = chipset[i].status;
 	  }
 	} else {
-		msg_gerr("Memory allocation error!");
+		msg_gerr("Memory allocation error!\n");
 	}
 
 	return supported_chipsets;
@@ -232,7 +263,7 @@ flashrom_chipset_info *flashrom_supported_chipsets(void)
 int flashrom_data_free(void *const p)
 {
 	if (!p) {
-		msg_gerr("Null pointer!");
+		msg_gerr("flashrom_data_free - Null pointer!\n");
 		return 1;
 	} else {
 		free(p);

@@ -41,6 +41,7 @@ typedef struct flashrom_context {
 /** @ingroup flashrom-general */
 typedef int(flashrom_log_callback)(enum flashrom_log_level, const char *format, va_list);
 void flashrom_set_log_callback(flashrom_log_callback *);
+int flashrom_print_cb(enum flashrom_log_level, const char *fmt, va_list);
 
 /** @ingroup flashrom-query */
 typedef enum {
