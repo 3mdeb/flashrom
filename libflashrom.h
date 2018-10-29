@@ -32,7 +32,7 @@ enum flashrom_log_level {
 	FLASHROM_MSG_SPEW	= 5,
 };
 
-typedef struct flashrom_context{
+typedef struct flashrom_context {
 	const void *programmer_context;
 	const void *chip_context;
 	const void *log_context;
@@ -43,7 +43,7 @@ typedef int(flashrom_log_callback)(enum flashrom_log_level, const char *format, 
 void flashrom_set_log_callback(flashrom_log_callback *);
 
 /** @ingroup flashrom-query */
-typedef enum{
+typedef enum {
 	FLASHROM_TESTED_OK  = 0,
 	FLASHROM_TESTED_NT  = 1,
 	FLASHROM_TESTED_BAD = 2,
@@ -51,7 +51,7 @@ typedef enum{
 	FLASHROM_TESTED_NA  = 4,
 } flashrom_test_state;
 
-typedef struct flashrom_flashchip_info{
+typedef struct flashrom_flashchip_info {
 	const char *vendor;
 	const char *name;
 	unsigned int total_size;
@@ -63,13 +63,13 @@ typedef struct flashrom_flashchip_info{
 	} tested;
 } flashrom_flashchip_info;
 
-typedef struct flashrom_board_info{
+typedef struct flashrom_board_info {
 	const char *vendor;
 	const char *name;
 	flashrom_test_state working;
 } flashrom_board_info;
 
-typedef struct flashrom_chipset_info{
+typedef struct flashrom_chipset_info {
 	const char *vendor;
 	const char *chipset;
 	uint16_t vendor_id;
