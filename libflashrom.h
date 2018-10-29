@@ -44,11 +44,11 @@ void flashrom_set_log_callback(flashrom_log_callback *);
 
 /** @ingroup flashrom-query */
 typedef enum{
-  FLASHROM_TESTED_OK  = 0,
-  FLASHROM_TESTED_NT  = 1,
-  FLASHROM_TESTED_BAD = 2,
-  FLASHROM_TESTED_DEP = 3,
-  FLASHROM_TESTED_NA  = 4,
+	FLASHROM_TESTED_OK  = 0,
+	FLASHROM_TESTED_NT  = 1,
+	FLASHROM_TESTED_BAD = 2,
+	FLASHROM_TESTED_DEP = 3,
+	FLASHROM_TESTED_NA  = 4,
 } flashrom_test_state;
 
 typedef struct flashrom_flashchip_info{
@@ -64,21 +64,20 @@ typedef struct flashrom_flashchip_info{
 } flashrom_flashchip_info;
 
 typedef struct flashrom_board_info{
-  const char *vendor;
-  const char *name;
-  flashrom_test_state working;
+	const char *vendor;
+	const char *name;
+	flashrom_test_state working;
 } flashrom_board_info;
 
 typedef struct flashrom_chipset_info{
-  const char *vendor;
-  const char *chipset;
+	const char *vendor;
+	const char *chipset;
 	uint16_t vendor_id;
 	uint16_t chipset_id;
-  flashrom_test_state status;
+	flashrom_test_state status;
 } flashrom_chipset_info;
 
 const char *flashrom_version_info(void);
-//const char **flashrom_system_info(void);
 void flashrom_system_info(void);
 const char **flashrom_supported_programmers(void);
 flashrom_flashchip_info *flashrom_supported_flash_chips(void);
@@ -113,6 +112,10 @@ int flashrom_image_verify(struct flashrom_flashctx *, const void *buffer, size_t
 
 struct flashrom_layout;
 int flashrom_layout_read_from_ifd(struct flashrom_layout **, struct flashrom_flashctx *, const void *dump, size_t len);
+int flashrom_layout_read_fmap_from_rom(struct flashrom_layout **,
+		struct flashrom_flashctx *, off_t offset, size_t length);
+int flashrom_layout_read_fmap_from_buffer(struct flashrom_layout **layout,
+		struct flashrom_flashctx *, const uint8_t *buf, size_t len);
 int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
 void flashrom_layout_release(struct flashrom_layout *);
 void flashrom_layout_set(struct flashrom_flashctx *, const struct flashrom_layout *);
