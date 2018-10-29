@@ -134,7 +134,7 @@ const char **flashrom_supported_programmers(void)
 }
 
 /**
- * @brief Returns list of supported flash ROM chips
+ * @brief Returns list of supported flash chips
  * @return List of supported flash ROM chips
  */
 flashrom_flashchip_info *flashrom_supported_flash_chips(void)
@@ -196,20 +196,20 @@ flashrom_board_info *flashrom_supported_boards(void)
  */
 flashrom_chipset_info *flashrom_supported_chipsets(void)
 {
-	int chipset_enbales_size = 0;
+	int chipset_enables_size = 0;
 	int i = 0;
 	const struct penable *chipset = chipset_enables;
 
 	while ((chipset++)->vendor_name)
-		++chipset_enbales_size;
+		++chipset_enables_size;
 	chipset = chipset_enables;
 	/* add place for {0}*/
-	++chipset_enbales_size;
+	++chipset_enables_size;
 
-	flashrom_chipset_info *supported_chipsets = malloc(chipset_enbales_size * sizeof(flashrom_chipset_info));
+	flashrom_chipset_info *supported_chipsets = malloc(chipset_enables_size * sizeof(flashrom_chipset_info));
 
 	if (supported_chipsets != NULL) {
-		for (; i < chipset_enbales_size; ++i) {
+		for (; i < chipset_enables_size; ++i) {
 			supported_chipsets[i].vendor = chipset[i].vendor_name;
 			supported_chipsets[i].chipset = chipset[i].device_name;
 			supported_chipsets[i].vendor_id = chipset[i].vendor_id;
