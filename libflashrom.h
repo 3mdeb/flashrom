@@ -33,13 +33,6 @@ enum flashrom_log_level {
 	FLASHROM_MSG_DEBUG2	= 4,
 	FLASHROM_MSG_SPEW	= 5,
 };
-
-typedef struct flashrom_context {
-	const void *programmer_context;
-	const void *chip_context;
-	const void *log_context;
-} flashrom_context;
-
 /** @ingroup flashrom-general */
 typedef int(flashrom_log_callback)(enum flashrom_log_level, const char *format, va_list);
 void flashrom_set_log_callback(flashrom_log_callback *);
