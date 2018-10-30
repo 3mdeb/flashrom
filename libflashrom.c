@@ -158,7 +158,7 @@ const char **flashrom_supported_programmers(void)
 			supported_programmers[p] = programmer_table[p].name;
 		}
 	} else {
-		msg_gerr("Memory allocation error!\n");
+		msg_gerr("Memory allocation error!");
 	}
 
 	return supported_programmers;
@@ -184,7 +184,7 @@ flashrom_flashchip_info *flashrom_supported_flash_chips(void)
 			supported_flashchips[i].total_size = flashchips[i].total_size;
 		}
 	} else {
-		msg_gerr("Memory allocation error!\n");
+		msg_gerr("Memory allocation error!");
 	}
 
 	return supported_flashchips;
@@ -215,7 +215,7 @@ flashrom_board_info *flashrom_supported_boards(void)
 			supported_boards[i].working = binfo[i].working;
 		}
 	} else {
-		msg_gerr("Memory allocation error!\n");
+		msg_gerr("Memory allocation error!");
 	}
 
 	return supported_boards;
@@ -248,7 +248,7 @@ flashrom_chipset_info *flashrom_supported_chipsets(void)
 			supported_chipsets[i].status = chipset[i].status;
 	  }
 	} else {
-		msg_gerr("Memory allocation error!\n");
+		msg_gerr("Memory allocation error!");
 	}
 
 	return supported_chipsets;
@@ -263,7 +263,7 @@ flashrom_chipset_info *flashrom_supported_chipsets(void)
 int flashrom_data_free(void *const p)
 {
 	if (!p) {
-		msg_gerr("flashrom_data_free - Null pointer!\n");
+		msg_gerr("Null pointer!");
 		return 1;
 	} else {
 		free(p);
