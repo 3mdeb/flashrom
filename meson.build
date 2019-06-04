@@ -68,8 +68,6 @@ deps = []
 srcs = []
 
 need_libusb0 = false
-need_raw_access = false
-need_serial = false
 
 # check for required symbols
 if cc.has_function('clock_gettime')
