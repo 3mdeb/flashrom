@@ -1077,7 +1077,7 @@ endif
 $(PROGRAM)$(EXEC_SUFFIX): $(OBJS)
 	$(CC) $(LDFLAGS) -o $(PROGRAM)$(EXEC_SUFFIX) $(OBJS) $(LIBS) $(PCILIBS) $(FEATURE_LIBS) $(USBLIBS) $(USB1LIBS) $(JAYLINKLIBS)
 
-libflashrom.a: $(LIBFLASHROM_OBJS) print.o cli_common.o
+libflashrom.a: $(LIBFLASHROM_OBJS)
 	$(AR) rcs $@ $^
 	$(RANLIB) $@
 

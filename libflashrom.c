@@ -146,10 +146,10 @@ flashrom_flashchip_info *flashrom_supported_flash_chips(void)
 		for (; i < flashchips_size; ++i) {
 			supported_flashchips[i].vendor = flashchips[i].vendor;
 			supported_flashchips[i].name = flashchips[i].name;
-			supported_flashchips[i].tested.erase = flashchips[i].tested.erase;
-			supported_flashchips[i].tested.probe =  flashchips[i].tested.probe;
-			supported_flashchips[i].tested.read = flashchips[i].tested.read;
-			supported_flashchips[i].tested.write = flashchips[i].tested.write;
+			supported_flashchips[i].tested.erase = (flashrom_test_state) flashchips[i].tested.erase;
+			supported_flashchips[i].tested.probe =  (flashrom_test_state) flashchips[i].tested.probe;
+			supported_flashchips[i].tested.read = (flashrom_test_state) flashchips[i].tested.read;
+			supported_flashchips[i].tested.write = (flashrom_test_state) flashchips[i].tested.write;
 			supported_flashchips[i].total_size = flashchips[i].total_size;
 		}
 	} else {
