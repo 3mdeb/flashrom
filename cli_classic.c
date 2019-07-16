@@ -61,6 +61,7 @@ static void cli_classic_usage(const char *name)
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
+		   " -d | --dump-flash                  print flashmap read from ROM\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
@@ -101,6 +102,7 @@ int main(int argc, char *argv[])
 	const char *name;
 	int namelen, opt, i, j;
 	int startchip = -1, chipcount = 0, option_index = 0, force = 0, ifd = 0, fmap = 0;
+	int dump_flash = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
@@ -116,7 +118,7 @@ int main(int argc, char *argv[])
 	};
 	int ret = 0;
 
-	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzho:";
+	static const char optstring[] = "r:Rw:v:nNVEfc:l:i:p:Lzhdo:";
 	static const struct option long_options[] = {
 		{"read",		1, NULL, 'r'},
 		{"write",		1, NULL, 'w'},
@@ -139,6 +141,7 @@ int main(int argc, char *argv[])
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
+		{"dump-flash",  0, NULL, 'd'},
 		{NULL,			0, NULL, 0},
 	};
 
@@ -305,6 +308,9 @@ int main(int argc, char *argv[])
 				cli_classic_abort_usage();
 			}
 			list_supported = 1;
+			break;
+		case 'd':
+			dump_flash = 1;
 			break;
 		case 'z':
 #if CONFIG_PRINT_WIKI == 1
@@ -600,7 +606,7 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (!(read_it | write_it | verify_it | erase_it)) {
+	if (!(read_it | write_it | verify_it | erase_it | dump_flash)) {
 		msg_ginfo("No operations were specified.\n");
 		goto out_shutdown;
 	}
@@ -643,6 +649,10 @@ int main(int argc, char *argv[])
 				fill_flash->chip->total_size * 1024) || process_include_args(layout))) {
 		ret = 1;
 		goto out_shutdown;
+	}
+
+	if (dump_flash){
+		flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0, fill_flash->chip->total_size * 1024);
 	}
 
 	flashrom_layout_set(fill_flash, layout);

@@ -405,7 +405,7 @@ static int flashrom_layout_parse_fmap(struct flashrom_layout **layout,
 		memset(l->entries[l->num_entries].name, 0, sizeof(l->entries[i].name));
 		memcpy(l->entries[l->num_entries].name, fmap->areas[i].name,
 			min(FMAP_STRLEN, sizeof(l->entries[i].name)));
-		msg_gdbg("fmap %08x - %08x named %s\n",
+		msg_ginfo("fmap %08x - %08x named %s\n",
 			l->entries[l->num_entries].start,
 			l->entries[l->num_entries].end,
 			l->entries[l->num_entries].name);
