@@ -61,7 +61,7 @@ static void cli_classic_usage(const char *name)
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
-		   " -d | --dump-flash                  print flashmap read from ROM\n"
+		   " -d | --dump-fmap                   print flashmap read from ROM\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	const char *name;
 	int namelen, opt, i, j;
 	int startchip = -1, chipcount = 0, option_index = 0, force = 0, ifd = 0, fmap = 0;
-	int dump_flash = 0;
+	int dump_fmap = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
-		{"dump-flash",  0, NULL, 'd'},
+		{"dump-fmap",  0, NULL, 'd'},
 		{NULL,			0, NULL, 0},
 	};
 
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 			list_supported = 1;
 			break;
 		case 'd':
-			dump_flash = 1;
+			dump_fmap = 1;
 			break;
 		case 'z':
 #if CONFIG_PRINT_WIKI == 1
@@ -606,7 +606,7 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (!(read_it | write_it | verify_it | erase_it | dump_flash)) {
+	if (!(read_it | write_it | verify_it | erase_it | dump_fmap)) {
 		msg_ginfo("No operations were specified.\n");
 		goto out_shutdown;
 	}
@@ -638,7 +638,7 @@ int main(int argc, char *argv[])
 			goto out_shutdown;
 		}
 
-		if (flashrom_layout_read_fmap_from_buffer(&layout, fill_flash, fmapfile_buffer, fmapfile_size) ||
+		if (flashrom_layout_read_fmap_from_buffer(&layout, fill_flash, fmapfile_buffer, fmapfile_size, 0) ||
 				process_include_args(layout)) {
 			ret = 1;
 			free(fmapfile_buffer);
@@ -646,13 +646,13 @@ int main(int argc, char *argv[])
 		}
 		free(fmapfile_buffer);
 	} else if (fmap && (flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0,
-				fill_flash->chip->total_size * 1024) || process_include_args(layout))) {
+				fill_flash->chip->total_size * 1024, 0) || process_include_args(layout))) {
 		ret = 1;
 		goto out_shutdown;
 	}
 
-	if (dump_flash){
-		flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0, fill_flash->chip->total_size * 1024);
+	if (dump_fmap){
+		flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0, fill_flash->chip->total_size * 1024, 1);
 	}
 
 	flashrom_layout_set(fill_flash, layout);
