@@ -40,17 +40,73 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hwaccess.h"
 #include "programmer.h"
 #include "spi.h"
 
+#define EC_DATA	           0x62
+#define EC_CONTROL         0x66
+#define   EC_STS_IGN1      (1 << 7)
+#define   EC_STS_SMI_EVT   (1 << 6)
+#define   EC_STS_SCI_EVT   (1 << 5)
+#define   EC_STS_BURST     (1 << 4)
+#define   EC_STS_CMD       (1 << 3)
+#define   EC_STS_IGN2      (1 << 2)
+#define   EC_STS_IBF       (1 << 1)
+#define   EC_STS_OBF       (1 << 0)
+
+#define TRY_COUNT 100000
+
 typedef struct
 {
+	uint8_t flash_size_in_kb;
+	uint8_t flash_size_in_blocks;
 } tuxec_data_t;
 
 static int tuxec_shutdown(void *data)
 {
 	free(data);
 	return 0;
+}
+
+static uint8_t tuxec_query(uint8_t data)
+{
+	int i;
+
+	for (i = 0; i < TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	OUTB(0x80, EC_CONTROL);
+
+	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	OUTB(data, EC_DATA);
+
+	for (i = 0; i < TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	return INB(EC_DATA);
+}
+
+static void tuxec_init_flash_size(tuxec_data_t *ctx_data)
+{
+	switch (tuxec_query(0xf9) & 0xf0) {
+	case 0x40:
+		ctx_data->flash_size_in_kb = 192;
+		ctx_data->flash_size_in_blocks = 3;
+		break;
+	case 0xf0:
+		ctx_data->flash_size_in_kb = 255;
+		ctx_data->flash_size_in_blocks = 4;
+		break;
+	default:
+		ctx_data->flash_size_in_kb = 128;
+		ctx_data->flash_size_in_blocks = 1;
+		break;
+	}
 }
 
 static int tuxec_spi_send_command(const struct flashctx *flash,
@@ -91,30 +147,28 @@ int tuxec_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
+	if (tuxec_check_params())
+		return 1;
+
 	ctx_data = calloc(1, sizeof(tuxec_data_t));
 	if (!ctx_data) {
 		msg_perr("Unable to allocate space for extra context data.\n");
 		return 1;
 	}
 
-	if (tuxec_check_params())
-		goto init_err_exit;
+	tuxec_init_flash_size(ctx_data);
 
 	spi_master_tuxec.data = ctx_data;
 
 	if (register_shutdown(tuxec_shutdown, ctx_data))
-		goto init_err_cleanup_exit;
+		goto init_err_exit;
 	register_spi_master(&spi_master_tuxec);
 	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
 
 	return 0;
 
-init_err_cleanup_exit:
-	tuxec_shutdown(ctx_data);
-	return 1;
-
 init_err_exit:
-	free(ctx_data);
+	tuxec_shutdown(ctx_data);
 	return 1;
 }
 #endif
