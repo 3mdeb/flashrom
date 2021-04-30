@@ -44,16 +44,19 @@
 #include "programmer.h"
 #include "spi.h"
 
-#define EC_DATA	           0x62
-#define EC_CONTROL         0x66
-#define   EC_STS_IGN1      (1 << 7)
-#define   EC_STS_SMI_EVT   (1 << 6)
-#define   EC_STS_SCI_EVT   (1 << 5)
-#define   EC_STS_BURST     (1 << 4)
-#define   EC_STS_CMD       (1 << 3)
-#define   EC_STS_IGN2      (1 << 2)
-#define   EC_STS_IBF       (1 << 1)
-#define   EC_STS_OBF       (1 << 0)
+#define EC_DATA       0x62
+#define EC_CONTROL    0x66
+
+#define EC_CMD_FINISH 0xfe
+
+#define EC_STS_IGN1    (1 << 7)
+#define EC_STS_SMI_EVT (1 << 6)
+#define EC_STS_SCI_EVT (1 << 5)
+#define EC_STS_BURST   (1 << 4)
+#define EC_STS_CMD     (1 << 3)
+#define EC_STS_IGN2    (1 << 2)
+#define EC_STS_IBF     (1 << 1)
+#define EC_STS_OBF     (1 << 0)
 
 #define TRY_COUNT 100000
 
@@ -61,10 +64,30 @@ typedef struct
 {
 	uint8_t flash_size_in_kb;
 	uint8_t flash_size_in_blocks;
+	uint8_t control_port;
+	uint8_t data_port;
 } tuxec_data_t;
+
+static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
+{
+	int i;
+
+	for (i = 0; i <= TRY_COUNT; ++i) {
+		if ((INB(ctx_data->control_port) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+
+	OUTB(cmd, ctx_data->control_port);
+	return (i <= TRY_COUNT);
+}
 
 static int tuxec_shutdown(void *data)
 {
+	tuxec_data_t *ctx_data = (tuxec_data_t *)data;
+
+	tuxec_write_cmd(ctx_data, EC_CMD_FINISH);
+
 	free(data);
 	return 0;
 }
@@ -91,8 +114,11 @@ static uint8_t tuxec_query(uint8_t data)
 	return INB(EC_DATA);
 }
 
-static void tuxec_init_flash_size(tuxec_data_t *ctx_data)
+static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
+	ctx_data->control_port = EC_CONTROL;
+	ctx_data->data_port = EC_DATA;
+
 	switch (tuxec_query(0xf9) & 0xf0) {
 	case 0x40:
 		ctx_data->flash_size_in_kb = 192;
@@ -179,13 +205,14 @@ int tuxec_init(void)
 	tuxec_send_init(0xfb, 0x00);
 	tuxec_send_init(0xf8, 0xb1);
 
-	tuxec_init_flash_size(ctx_data);
+	tuxec_init_ctx(ctx_data);
 
 	spi_master_tuxec.data = ctx_data;
 
 	if (register_shutdown(tuxec_shutdown, ctx_data))
 		goto init_err_exit;
-	register_spi_master(&spi_master_tuxec);
+	if (register_spi_master(&spi_master_tuxec))
+		goto init_err_exit;
 	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
 
 	return 0;
