@@ -109,6 +109,24 @@ static void tuxec_init_flash_size(tuxec_data_t *ctx_data)
 	}
 }
 
+static void tuxec_send_init(uint8_t data1, uint8_t data2)
+{
+	int i;
+
+	for (i = 0; i <= TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	OUTB(0x81, EC_CONTROL);
+
+	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	OUTB(data1, EC_DATA);
+
+	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	OUTB(data2, EC_DATA);
+}
+
 static int tuxec_spi_send_command(const struct flashctx *flash,
 								  unsigned int writecnt,
                                   unsigned int readcnt,
@@ -155,6 +173,11 @@ int tuxec_init(void)
 		msg_perr("Unable to allocate space for extra context data.\n");
 		return 1;
 	}
+
+	tuxec_send_init(0xf9, 0x20);
+	tuxec_send_init(0xfa, 0x02);
+	tuxec_send_init(0xfb, 0x00);
+	tuxec_send_init(0xf8, 0xb1);
 
 	tuxec_init_flash_size(ctx_data);
 
