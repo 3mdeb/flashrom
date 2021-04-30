@@ -34,6 +34,9 @@ enum programmer {
 #if CONFIG_MEC1308 == 1
 	PROGRAMMER_MEC1308,
 #endif
+#if CONFIG_TUXEC == 1
+	PROGRAMMER_TUXEC,
+#endif
 #if CONFIG_NIC3COM == 1
 	PROGRAMMER_NIC3COM,
 #endif
@@ -704,6 +707,11 @@ int mcp6x_spi_init(int want_spi);
 /* mec1308.c */
 #if CONFIG_MEC1308 == 1
 int mec1308_init(void);
+#endif
+
+/* tuxec.c */
+#if CONFIG_TUXEC == 1
+int tuxec_init(void);
 #endif
 
 /* sb600spi.c */

@@ -187,6 +187,11 @@ UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
 endif
+ifeq ($(CONFIG_TUXEC), yes)
+UNSUPPORTED_FEATURES += CONFIG_TUXEC=yes
+else
+override CONFIG_TUXEC = no
+endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
 else
@@ -303,6 +308,11 @@ UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
 endif
+ifeq ($(CONFIG_TUXEC), yes)
+UNSUPPORTED_FEATURES += CONFIG_TUXEC=yes
+else
+override CONFIG_TUXEC = no
+endif
 ifeq ($(CONFIG_NICREALTEK), yes)
 UNSUPPORTED_FEATURES += CONFIG_NICREALTEK=yes
 else
@@ -417,6 +427,11 @@ ifeq ($(CONFIG_MEC1308), yes)
 UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
+endif
+ifeq ($(CONFIG_TUXEC), yes)
+UNSUPPORTED_FEATURES += CONFIG_TUXEC=yes
+else
+override CONFIG_TUXEC = no
 endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
@@ -553,6 +568,11 @@ ifeq ($(CONFIG_MEC1308), yes)
 UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
+endif
+ifeq ($(CONFIG_TUXEC), yes)
+UNSUPPORTED_FEATURES += CONFIG_TUXEC=yes
+else
+override CONFIG_TUXEC = no
 endif
 endif
 
@@ -724,6 +744,9 @@ CONFIG_FT2232_SPI ?= yes
 # Microchip MEC1308 Embedded Controller
 CONFIG_MEC1308 ?= yes
 
+# Embedded Controller of TUX laptops.
+CONFIG_TUXEC ?= yes
+
 # Always enable Altera USB-Blaster dongles for now.
 CONFIG_USBBLASTER_SPI ?= yes
 
@@ -835,6 +858,7 @@ override CONFIG_ENE_LPC = no
 override CONFIG_IT8212 = no
 override CONFIG_DRKAISER = no
 override CONFIG_MEC1308 = no
+override CONFIG_TUXEC = no
 override CONFIG_NICREALTEK = no
 override CONFIG_NICNATSEMI = no
 override CONFIG_NICINTEL = no
@@ -917,6 +941,13 @@ FEATURE_CFLAGS += -D'CONFIG_MEC1308=1'
 PROGRAMMER_OBJS += mec1308.o
 NEED_RAW_ACCESS += CONFIG_MEC1308
 NEED_LIBPCI += CONFIG_MEC1308
+endif
+
+ifeq ($(CONFIG_TUXEC), yes)
+FEATURE_CFLAGS += -D'CONFIG_TUXEC=1'
+PROGRAMMER_OBJS += tuxec.o
+NEED_RAW_ACCESS += CONFIG_TUXEC
+NEED_LIBPCI += CONFIG_TUXEC
 endif
 
 ifeq ($(CONFIG_SERPROG), yes)

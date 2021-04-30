@@ -96,6 +96,18 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_TUXEC == 1
+	{
+		.name			= "tuxec",
+		.type			= OTHER,
+		.devs.note		= "Embedded Controller of TUX laptops.\n",
+		.init			= tuxec_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
 #if CONFIG_NIC3COM == 1
 	{
 		.name			= "nic3com",
