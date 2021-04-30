@@ -42,7 +42,6 @@
 
 #include "hwaccess.h"
 #include "programmer.h"
-#include "spi.h"
 
 #define EC_DATA       0x62
 #define EC_CONTROL    0x66
@@ -153,23 +152,44 @@ static void tuxec_send_init(uint8_t data1, uint8_t data2)
 	OUTB(data2, EC_DATA);
 }
 
-static int tuxec_spi_send_command(const struct flashctx *flash,
-								  unsigned int writecnt,
-                                  unsigned int readcnt,
-                                  const unsigned char *writearr,
-                                  unsigned char *readarr)
+static int tuxec_probe(struct flashctx *flash)
 {
-	int ret = 0;
-	return ret;
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
+	flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
+	flash->chip->tested = TEST_OK_PREW;
+	flash->chip->total_size = ctx_data->flash_size_in_kb;
+	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
+	flash->chip->block_erasers[0].eraseblocks[0].count =
+		ctx_data->flash_size_in_kb;
+	return 1;
 }
 
-static struct spi_master spi_master_tuxec = {
+static int tuxec_read(struct flashctx *flash, uint8_t *buf,
+			  unsigned int start, unsigned int len)
+{
+	return 1;
+}
+
+static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
+				unsigned int start, unsigned int len)
+{
+	return 1;
+}
+
+static int tuxec_erase(struct flashctx *flash,
+			unsigned int start, unsigned int len)
+{
+	return 1;
+}
+
+static struct opaque_master programmer_tuxec = {
 	.max_data_read = 65536,
 	.max_data_write = 65536,
-	.command = tuxec_spi_send_command,
-	.multicommand = default_spi_send_multicommand,
-	.read = default_spi_read,
-	.write_256 = default_spi_write_256,
+	.probe		= tuxec_probe,
+	.read		= tuxec_read,
+	.write		= tuxec_write,
+	.erase		= tuxec_erase,
 };
 
 static int tuxec_check_params(void)
@@ -207,11 +227,11 @@ int tuxec_init(void)
 
 	tuxec_init_ctx(ctx_data);
 
-	spi_master_tuxec.data = ctx_data;
+	programmer_tuxec.data = ctx_data;
 
 	if (register_shutdown(tuxec_shutdown, ctx_data))
 		goto init_err_exit;
-	if (register_spi_master(&spi_master_tuxec))
+	if (register_opaque_master(&programmer_tuxec))
 		goto init_err_exit;
 	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
 
