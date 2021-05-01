@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "chipdrivers.h"
 #include "hwaccess.h"
 #include "programmer.h"
 
@@ -51,12 +52,6 @@
 #define EC_CMD_FILL_KBYTE  0x05
 #define EC_CMD_FINISH      0xfe
 
-#define EC_STS_IGN1     (1 << 7)
-#define EC_STS_SMI_EVT  (1 << 6)
-#define EC_STS_SCI_EVT  (1 << 5)
-#define EC_STS_BURST    (1 << 4)
-#define EC_STS_CMD      (1 << 3)
-#define EC_STS_IGN2     (1 << 2)
 #define EC_STS_IBF      (1 << 1)
 #define EC_STS_OBF      (1 << 0)
 
@@ -185,6 +180,7 @@ static int tuxec_probe(struct flashctx *flash)
 	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
 	flash->chip->block_erasers[0].eraseblocks[0].count =
 		ctx_data->flash_size_in_kb;
+	flash->chip->gran = write_gran_1024bytes;
 	return 1;
 }
 
@@ -232,10 +228,84 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 	return ret;
 }
 
+static void tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
+				unsigned int block)
+{
+	unsigned int i;
+
+	tuxec_write_cmd(ctx_data, EC_CMD_WRITE_BLOCK);
+	tuxec_write_cmd(ctx_data, 0x02);
+	tuxec_write_cmd(ctx_data, block);
+	tuxec_write_cmd(ctx_data, 0x02);
+	tuxec_write_cmd(ctx_data, 0x02);
+
+	for (i = 0; i < BLOCK_SIZE_IN_BYTES; ++i) {
+		while ((INB(ctx_data->control_port) & EC_STS_IBF) != 0);
+		OUTB(*buf, ctx_data->data_port);
+
+		++buf;
+	}
+}
+
 static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 				unsigned int start, unsigned int len)
 {
-	return 1;
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
+	const unsigned int first_block = start/BLOCK_SIZE_IN_BYTES;
+	const unsigned int last_block = (start + len)/BLOCK_SIZE_IN_BYTES;
+
+	unsigned int block;
+	unsigned int offset = start;
+	unsigned int left = len;
+
+	int ret = 0;
+
+	for (block = first_block; block < last_block; ++block) {
+		const unsigned int block_start = block*BLOCK_SIZE_IN_BYTES;
+
+		uint8_t *tmp_buf;
+		unsigned int block_end;
+		unsigned int update_size;
+
+		if (offset == block_start && left >= BLOCK_SIZE_IN_BYTES) {
+			tuxec_block_write(ctx_data, buf, block);
+
+			offset += BLOCK_SIZE_IN_BYTES;
+			left -= BLOCK_SIZE_IN_BYTES;
+			continue;
+		}
+
+		block_end = (block + 1)*BLOCK_SIZE_IN_BYTES;
+		update_size = min(left, block_end - start);
+
+		tmp_buf = (uint8_t *)malloc(BLOCK_SIZE_IN_BYTES);
+		if (!tmp_buf) {
+			msg_perr("Unable to allocate space for block buffer.\n");
+			ret = 1;
+			break;
+		}
+
+		if (read_opaque(flash,
+				tmp_buf,
+				block_start,
+				BLOCK_SIZE_IN_BYTES)) {
+			free(tmp_buf);
+			msg_perr("Unable to read block into buffer.\n");
+			ret = 1;
+		}
+
+		memcpy(tmp_buf + (offset - block_start), buf, update_size);
+
+		tuxec_block_write(ctx_data, tmp_buf, block);
+
+		free(tmp_buf);
+
+		offset += update_size;
+		left -= update_size;
+	}
+
+	return ret;
 }
 
 static int tuxec_erase(struct flashctx *flash,
