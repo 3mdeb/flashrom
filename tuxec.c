@@ -76,7 +76,7 @@ static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 {
 	int i;
 
-	for (i = 0; i <= TRY_COUNT; ++i) {
+	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(ctx_data->control_port) & EC_STS_IBF) == 0) {
 			break;
 		}
@@ -86,14 +86,14 @@ static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 	}
 	OUTB(cmd, ctx_data->control_port);
 
-	return (i <= TRY_COUNT);
+	return (i < TRY_COUNT);
 }
 
 static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
 {
 	int i;
 
-	for (i = 0; i <= TRY_COUNT; ++i) {
+	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(ctx_data->control_port) & EC_STS_OBF) != 0) {
 			break;
 		}
@@ -176,7 +176,7 @@ static void tuxec_send_init(uint8_t data1, uint8_t data2)
 {
 	int i;
 
-	for (i = 0; i <= TRY_COUNT; ++i) {
+	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
 			break;
 		}
@@ -186,7 +186,7 @@ static void tuxec_send_init(uint8_t data1, uint8_t data2)
 	}
 	OUTB(0x81, EC_CONTROL);
 
-	for (i = 0; i <= TRY_COUNT; ++i) {
+	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
 			break;
 		}
@@ -196,7 +196,7 @@ static void tuxec_send_init(uint8_t data1, uint8_t data2)
 	}
 	OUTB(data1, EC_DATA);
 
-	for (i = 0; i <= TRY_COUNT; ++i) {
+	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
 			break;
 		}
@@ -278,7 +278,7 @@ static void tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
 
 	for (i = 0; i < BLOCK_SIZE_IN_BYTES; ++i) {
 		unsigned int j;
-		for (j = 0; j <= TRY_COUNT; ++j) {
+		for (j = 0; j < TRY_COUNT; ++j) {
 			if ((INB(ctx_data->control_port) & EC_STS_IBF) == 0) {
 				break;
 			}
