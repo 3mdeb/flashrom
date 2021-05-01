@@ -46,6 +46,8 @@
 #define EC_DATA       0x62
 #define EC_CONTROL    0x66
 
+#define EC_CMD_WRITE_BLOCK 0x02
+#define EC_CMD_READ_BLOCK  0x03
 #define EC_CMD_FILL_KBYTE  0x05
 #define EC_CMD_FINISH      0xfe
 
@@ -57,6 +59,8 @@
 #define EC_STS_IGN2     (1 << 2)
 #define EC_STS_IBF      (1 << 1)
 #define EC_STS_OBF      (1 << 0)
+
+#define BLOCK_SIZE_IN_BYTES 65536
 
 #define CHUNK_SIZE_IN_BYTES 256
 #define CHUNKS_PER_KBYTE 4
@@ -83,6 +87,20 @@ static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 	}
 
 	OUTB(cmd, ctx_data->control_port);
+	return (i <= TRY_COUNT);
+}
+
+static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
+{
+	int i;
+
+	for (i = 0; i <= TRY_COUNT; ++i) {
+		if ((INB(ctx_data->control_port) & EC_STS_OBF) != 0) {
+			break;
+		}
+	}
+
+	*data = INB(ctx_data->data_port);
 	return (i <= TRY_COUNT);
 }
 
@@ -173,7 +191,45 @@ static int tuxec_probe(struct flashctx *flash)
 static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 			  unsigned int start, unsigned int len)
 {
-	return 1;
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
+	const unsigned int first_byte = start - start%BLOCK_SIZE_IN_BYTES;
+	const unsigned int last_byte = ctx_data->flash_size_in_kb*1024;
+
+	unsigned int offset;
+	uint8_t rom_byte;
+
+	int ret = 0;
+
+	for (offset = first_byte; offset < last_byte; ++offset) {
+		if (offset%BLOCK_SIZE_IN_BYTES == 0) {
+			tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK);
+			tuxec_write_cmd(ctx_data, offset/BLOCK_SIZE_IN_BYTES);
+		}
+
+		if (!tuxec_read_byte(ctx_data, &rom_byte)) {
+			rom_byte = 0;
+			ret = 1;
+		}
+
+		if (offset < start) {
+			continue;
+		}
+
+		*buf = rom_byte;
+
+		++buf;
+		--len;
+
+		if (len == 0) {
+			break;
+		}
+	}
+
+	/* Finish reading the block. */
+	while (tuxec_read_byte (ctx_data, &rom_byte));
+
+	return ret;
 }
 
 static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
@@ -185,9 +241,11 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 static int tuxec_erase(struct flashctx *flash,
 			unsigned int start, unsigned int len)
 {
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
 	const unsigned int first_chunk = start/CHUNK_SIZE_IN_BYTES;
 	const unsigned int last_chunk = (start + len)/CHUNK_SIZE_IN_BYTES;
-	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
 	unsigned int i;
 
 	for (i = first_chunk; i < last_chunk; i += CHUNKS_PER_KBYTE) {
