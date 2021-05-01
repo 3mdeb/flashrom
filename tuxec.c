@@ -46,18 +46,23 @@
 #define EC_DATA       0x62
 #define EC_CONTROL    0x66
 
-#define EC_CMD_FINISH 0xfe
+#define EC_CMD_FILL_KBYTE  0x05
+#define EC_CMD_FINISH      0xfe
 
-#define EC_STS_IGN1    (1 << 7)
-#define EC_STS_SMI_EVT (1 << 6)
-#define EC_STS_SCI_EVT (1 << 5)
-#define EC_STS_BURST   (1 << 4)
-#define EC_STS_CMD     (1 << 3)
-#define EC_STS_IGN2    (1 << 2)
-#define EC_STS_IBF     (1 << 1)
-#define EC_STS_OBF     (1 << 0)
+#define EC_STS_IGN1     (1 << 7)
+#define EC_STS_SMI_EVT  (1 << 6)
+#define EC_STS_SCI_EVT  (1 << 5)
+#define EC_STS_BURST    (1 << 4)
+#define EC_STS_CMD      (1 << 3)
+#define EC_STS_IGN2     (1 << 2)
+#define EC_STS_IBF      (1 << 1)
+#define EC_STS_OBF      (1 << 0)
 
-#define TRY_COUNT 100000
+#define CHUNK_SIZE_IN_BYTES 256
+#define CHUNKS_PER_KBYTE 4
+#define CHUNKS_PER_BLOCK 256
+
+#define TRY_COUNT  100000
 
 typedef struct
 {
@@ -180,7 +185,21 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 static int tuxec_erase(struct flashctx *flash,
 			unsigned int start, unsigned int len)
 {
-	return 1;
+	const unsigned int first_chunk = start/CHUNK_SIZE_IN_BYTES;
+	const unsigned int last_chunk = (start + len)/CHUNK_SIZE_IN_BYTES;
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+	unsigned int i;
+
+	for (i = first_chunk; i < last_chunk; i += CHUNKS_PER_KBYTE) {
+		tuxec_write_cmd(ctx_data, EC_CMD_FILL_KBYTE);
+		tuxec_write_cmd(ctx_data, i/CHUNKS_PER_BLOCK);
+		tuxec_write_cmd(ctx_data, i%CHUNKS_PER_BLOCK);
+		tuxec_write_cmd(ctx_data, 0x00);
+
+		internal_sleep(1000);
+	}
+
+	return 0;
 }
 
 static struct opaque_master programmer_tuxec = {
