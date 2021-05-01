@@ -50,6 +50,7 @@
 #define EC_CMD_WRITE_BLOCK 0x02
 #define EC_CMD_READ_BLOCK  0x03
 #define EC_CMD_FILL_KBYTE  0x05
+#define EC_CMD_QUERY       0x80
 #define EC_CMD_FINISH      0xfe
 
 #define EC_STS_IBF      (1 << 1)
@@ -80,8 +81,11 @@ static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 			break;
 		}
 	}
-
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
 	OUTB(cmd, ctx_data->control_port);
+
 	return (i <= TRY_COUNT);
 }
 
@@ -94,8 +98,11 @@ static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
 			break;
 		}
 	}
-
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: output buf is empty\n", __func__);
+	}
 	*data = INB(ctx_data->data_port);
+
 	return (i <= TRY_COUNT);
 }
 
@@ -118,15 +125,28 @@ static uint8_t tuxec_query(uint8_t data)
 			break;
 		}
 	}
-	OUTB(0x80, EC_CONTROL);
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
+	OUTB(EC_CMD_QUERY, EC_CONTROL);
 
-	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	for (i = 0; i < TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
 	OUTB(data, EC_DATA);
 
 	for (i = 0; i < TRY_COUNT; ++i) {
 		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
 			break;
 		}
+	}
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
 	}
 	return INB(EC_DATA);
 }
@@ -161,12 +181,29 @@ static void tuxec_send_init(uint8_t data1, uint8_t data2)
 			break;
 		}
 	}
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
 	OUTB(0x81, EC_CONTROL);
 
-	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	for (i = 0; i <= TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
 	OUTB(data1, EC_DATA);
 
-	while ((INB(EC_CONTROL) & EC_STS_IBF) != 0);
+	for (i = 0; i <= TRY_COUNT; ++i) {
+		if ((INB(EC_CONTROL) & EC_STS_IBF) == 0) {
+			break;
+		}
+	}
+	if (i >= TRY_COUNT) {
+		msg_pdbg("%s: input buf not empty\n", __func__);
+	}
 	OUTB(data2, EC_DATA);
 }
 
@@ -240,7 +277,16 @@ static void tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
 	tuxec_write_cmd(ctx_data, 0x02);
 
 	for (i = 0; i < BLOCK_SIZE_IN_BYTES; ++i) {
-		while ((INB(ctx_data->control_port) & EC_STS_IBF) != 0);
+		unsigned int j;
+		for (j = 0; j <= TRY_COUNT; ++j) {
+			if ((INB(ctx_data->control_port) & EC_STS_IBF) == 0) {
+				break;
+			}
+		}
+		if (j >= TRY_COUNT) {
+			msg_pdbg("%s: input buf not empty\n", __func__);
+		}
+
 		OUTB(*buf, ctx_data->data_port);
 
 		++buf;
