@@ -33,7 +33,7 @@
 
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
-#define EC_CMD_FILL_KBYTE   0x05
+#define EC_CMD_ERASE_KBYTE  0x05
 #define EC_CMD_QUERY        0x80
 #define EC_CMD_INIT         0x81
 #define EC_CMD_FINISH       0xfe
@@ -62,7 +62,7 @@ static bool tuxec_wait_for_ibuf(uint8_t status_port)
 
 	for (i = 0; (INB(status_port) & EC_STS_IBF) != 0; ++i) {
 		if (i == MAX_STATUS_CHECKS) {
-			msg_pdbg("%s(): input buf is empty\n", __func__);
+			msg_pdbg("%s(): input buf is not empty\n", __func__);
 			return false;
 		}
 	}
@@ -109,32 +109,42 @@ static int tuxec_shutdown(void *data)
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)data;
 
-	tuxec_write_cmd(ctx_data, EC_CMD_FINISH);
+	if (!tuxec_write_cmd(ctx_data, EC_CMD_FINISH))
+		msg_pdbg("%s(): failed to deinitialize controller\n", __func__);
 
 	free(data);
 	return 0;
 }
 
-static uint8_t tuxec_query(uint8_t data)
+static bool tuxec_query(uint8_t in, uint8_t *out)
 {
-	tuxec_wait_for_ibuf(EC_CONTROL);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
 	OUTB(EC_CMD_QUERY, EC_CONTROL);
 
-	tuxec_wait_for_ibuf(EC_CONTROL);
-	OUTB(data, EC_DATA);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
+	OUTB(in, EC_DATA);
 
-	tuxec_wait_for_ibuf(EC_CONTROL);
-	return INB(EC_DATA);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
+	*out = INB(EC_DATA);
+
+	return true;
 }
 
 static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	uint8_t flash_size_in_blocks;
+	uint8_t response;
 
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
-	switch (tuxec_query(0xf9) & 0xf0) {
+	if (!tuxec_query(0xf9, &response))
+		response = 0;
+
+	switch (response & 0xf0) {
 	case 0x40:
 		flash_size_in_blocks = 3;
 		break;
@@ -149,25 +159,30 @@ static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
 }
 
-static void tuxec_send_init(uint8_t data1, uint8_t data2)
+static bool tuxec_send_init(uint8_t data1, uint8_t data2)
 {
-	tuxec_wait_for_ibuf(EC_CONTROL);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
 	OUTB(EC_CMD_INIT, EC_CONTROL);
 
-	tuxec_wait_for_ibuf(EC_CONTROL);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
 	OUTB(data1, EC_DATA);
 
-	tuxec_wait_for_ibuf(EC_CONTROL);
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
 	OUTB(data2, EC_DATA);
+
+	return true;
 }
 
 static int tuxec_probe(struct flashctx *flash)
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
 	flash->chip->tested = TEST_OK_PREW;
 	flash->chip->total_size = ctx_data->rom_size_in_kbytes;
+	/* Because there is no constant for 64 KBytes. */
 	flash->chip->gran = write_gran_1024bytes;
 
 	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
@@ -178,22 +193,23 @@ static int tuxec_probe(struct flashctx *flash)
 }
 
 static int tuxec_read(struct flashctx *flash, uint8_t *buf,
-			  unsigned int start, unsigned int len)
+		      unsigned int start, unsigned int len)
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_byte = start - start%BYTES_PER_BLOCK;
-	const unsigned int last_byte = ctx_data->rom_size_in_kbytes*1024;
+	const unsigned int from_byte = start - start%BYTES_PER_BLOCK;
+	const unsigned int to_byte = ctx_data->rom_size_in_kbytes*1024;
 
 	unsigned int offset;
 	uint8_t rom_byte;
 
 	int ret = 0;
 
-	for (offset = first_byte; offset < last_byte; ++offset) {
+	for (offset = from_byte; offset < to_byte; ++offset) {
 		if (offset%BYTES_PER_BLOCK == 0) {
-			tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK);
-			tuxec_write_cmd(ctx_data, offset/BYTES_PER_BLOCK);
+			if (!tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK) ||
+			    !tuxec_write_cmd(ctx_data, offset/BYTES_PER_BLOCK))
+				ret = 1;
 		}
 
 		if (!tuxec_read_byte(ctx_data, &rom_byte)) {
@@ -216,28 +232,33 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 	}
 
 	/* Finish reading the block. */
-	while (tuxec_read_byte(ctx_data, &rom_byte)) {
+	while (tuxec_read_byte(ctx_data, &rom_byte))
 		continue;
-	}
 
 	return ret;
 }
 
-static void tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
-				unsigned int block)
+static bool tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
+			      unsigned int block)
 {
 	unsigned int i;
 
-	tuxec_write_cmd(ctx_data, EC_CMD_WRITE_BLOCK);
-	tuxec_write_cmd(ctx_data, 0x02);
-	tuxec_write_cmd(ctx_data, block);
-	tuxec_write_cmd(ctx_data, 0x02);
-	tuxec_write_cmd(ctx_data, 0x02);
+	bool ret = true;
+
+	if (!tuxec_write_cmd(ctx_data, EC_CMD_WRITE_BLOCK) ||
+	    !tuxec_write_cmd(ctx_data, 0x02) ||
+	    !tuxec_write_cmd(ctx_data, block) ||
+	    !tuxec_write_cmd(ctx_data, 0x02) ||
+	    !tuxec_write_cmd(ctx_data, 0x02))
+		ret = false;
 
 	for (i = 0; i < BYTES_PER_BLOCK; ++i) {
-		tuxec_write_byte(ctx_data, *buf);
+		if (!tuxec_write_byte(ctx_data, *buf))
+			ret = false;
 		++buf;
 	}
+
+	return ret;
 }
 
 static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
@@ -245,16 +266,19 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_block = start/BYTES_PER_BLOCK;
-	const unsigned int last_block = (start + len)/BYTES_PER_BLOCK;
+	const unsigned int from_block = start/BYTES_PER_BLOCK;
+	const unsigned int end = start + len;
 
 	unsigned int block;
+	unsigned int to_block;
 	unsigned int offset = start;
 	unsigned int left = len;
 
-	int ret = 0;
+	to_block = end/BYTES_PER_BLOCK;
+	if (end%BYTES_PER_BLOCK != 0)
+		++to_block;
 
-	for (block = first_block; block < last_block; ++block) {
+	for (block = from_block; block < to_block; ++block) {
 		const unsigned int block_start = block*BYTES_PER_BLOCK;
 
 		uint8_t *tmp_buf;
@@ -262,33 +286,39 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 		unsigned int update_size;
 
 		if (offset == block_start && left >= BYTES_PER_BLOCK) {
-			tuxec_block_write(ctx_data, buf, block);
+			if (!tuxec_block_write(ctx_data, buf, block)) {
+				msg_perr("Unable to write full block.\n");
+				return 1;
+			}
 
 			offset += BYTES_PER_BLOCK;
 			left -= BYTES_PER_BLOCK;
 			continue;
 		}
 
-		block_end = (block + 1)*BYTES_PER_BLOCK;
-		update_size = min(left, block_end - start);
+		block_end = block_start + BYTES_PER_BLOCK;
+		update_size = min(left, block_end - offset);
 
 		tmp_buf = (uint8_t *)malloc(BYTES_PER_BLOCK);
 		if (!tmp_buf) {
 			msg_perr("Unable to allocate space for block "
-					"buffer.\n");
-			ret = 1;
-			break;
+				 "buffer.\n");
+			return 1;
 		}
 
 		if (read_opaque(flash, tmp_buf, block_start, BYTES_PER_BLOCK)) {
 			free(tmp_buf);
 			msg_perr("Unable to read block into buffer.\n");
-			ret = 1;
+			return 1;
 		}
 
 		memcpy(tmp_buf + (offset - block_start), buf, update_size);
 
-		tuxec_block_write(ctx_data, tmp_buf, block);
+		if (!tuxec_block_write(ctx_data, tmp_buf, block)) {
+			free(tmp_buf);
+			msg_perr("Unable to write updated block.\n");
+			return 1;
+		}
 
 		free(tmp_buf);
 
@@ -296,48 +326,56 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 		left -= update_size;
 	}
 
-	return ret;
+	return 0;
 }
 
 static int tuxec_erase(struct flashctx *flash,
-			unsigned int start, unsigned int len)
+		       unsigned int start, unsigned int len)
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_chunk = start/BYTES_PER_CHUNK;
-	const unsigned int last_chunk = (start + len)/BYTES_PER_CHUNK;
+	const unsigned int from_chunk = start/BYTES_PER_CHUNK;
+	const unsigned int end = start + len;
+
+	unsigned int to_chunk;
 
 	unsigned int i;
+	int ret = 0;
 
-	for (i = first_chunk; i < last_chunk; i += CHUNKS_PER_KBYTE) {
-		tuxec_write_cmd(ctx_data, EC_CMD_FILL_KBYTE);
-		tuxec_write_cmd(ctx_data, i/CHUNKS_PER_BLOCK);
-		tuxec_write_cmd(ctx_data, i%CHUNKS_PER_BLOCK);
-		tuxec_write_cmd(ctx_data, 0x00);
+	to_chunk = end/BYTES_PER_CHUNK;
+	if (end%BYTES_PER_CHUNK != 0)
+		++to_chunk;
+
+	for (i = from_chunk; i < to_chunk; i += CHUNKS_PER_KBYTE) {
+		if (!tuxec_write_cmd(ctx_data, EC_CMD_ERASE_KBYTE) ||
+		    !tuxec_write_cmd(ctx_data, i/CHUNKS_PER_BLOCK) ||
+		    !tuxec_write_cmd(ctx_data, i%CHUNKS_PER_BLOCK) ||
+		    !tuxec_write_cmd(ctx_data, 0x00))
+			ret = 1;
 
 		internal_sleep(1000);
 	}
 
-	return 0;
+	return ret;
 }
 
 static struct opaque_master programmer_tuxec = {
-	.max_data_read = 65536,
-	.max_data_write = 65536,
+	.max_data_read  = MAX_DATA_READ_UNLIMITED,
+	.max_data_write = MAX_DATA_WRITE_UNLIMITED,
 	.probe		= tuxec_probe,
 	.read		= tuxec_read,
 	.write		= tuxec_write,
 	.erase		= tuxec_erase,
 };
 
-static int tuxec_check_params(void)
+static bool tuxec_check_params(void)
 {
-	int ret = 0;
+	bool ret = true;
 	char *const p = extract_programmer_param("type");
 	if (p && strcmp(p, "ec")) {
 		msg_pdbg("%s(): tuxec only supports \"ec\" type devices\n",
-				__func__);
-		ret = 1;
+			 __func__);
+		ret = false;
 	}
 
 	free(p);
@@ -350,7 +388,7 @@ int tuxec_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
-	if (tuxec_check_params())
+	if (!tuxec_check_params())
 		return 1;
 
 	ctx_data = calloc(1, sizeof(tuxec_data_t));
@@ -359,10 +397,13 @@ int tuxec_init(void)
 		return 1;
 	}
 
-	tuxec_send_init(0xf9, 0x20);
-	tuxec_send_init(0xfa, 0x02);
-	tuxec_send_init(0xfb, 0x00);
-	tuxec_send_init(0xf8, 0xb1);
+	if (!tuxec_send_init(0xf9, 0x20) ||
+	    !tuxec_send_init(0xfa, 0x02) ||
+	    !tuxec_send_init(0xfb, 0x00) ||
+	    !tuxec_send_init(0xf8, 0xb1)) {
+		msg_perr("Unable to initialize controller.\n");
+		goto init_err_exit;
+	}
 
 	tuxec_init_ctx(ctx_data);
 
