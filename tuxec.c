@@ -1,41 +1,25 @@
 /*
  * This file is part of the flashrom project.
  *
- * Copyright (C) 2010-2020, Google Inc.
+ * Copyright (C) 2021, 3mdeb Embedded Systems Consulting
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
  *
- *    * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *    * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *    * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Alternatively, this software may be distributed under the terms of the
- * GNU General Public License ("GPL") version 2 as published by the Free
- * Software Foundation.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/*
+ * Contains programmer implementation for EC used by Tux laptops.
  */
 
 #if defined(__i386__) || defined(__x86_64__)
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,46 +28,43 @@
 #include "hwaccess.h"
 #include "programmer.h"
 
-#define EC_DATA       0x62
-#define EC_CONTROL    0x66
+#define EC_DATA             0x62
+#define EC_CONTROL          0x66
 
-#define EC_CMD_WRITE_BLOCK 0x02
-#define EC_CMD_READ_BLOCK  0x03
-#define EC_CMD_FILL_KBYTE  0x05
-#define EC_CMD_QUERY       0x80
-#define EC_CMD_INIT        0x81
-#define EC_CMD_FINISH      0xfe
+#define EC_CMD_WRITE_BLOCK  0x02
+#define EC_CMD_READ_BLOCK   0x03
+#define EC_CMD_FILL_KBYTE   0x05
+#define EC_CMD_QUERY        0x80
+#define EC_CMD_INIT         0x81
+#define EC_CMD_FINISH       0xfe
 
-#define EC_STS_IBF      (1 << 1)
-#define EC_STS_OBF      (1 << 0)
+#define EC_STS_IBF          (1 << 1)
+#define EC_STS_OBF          (1 << 0)
 
-#define BLOCK_SIZE_IN_BYTES 65536
+#define BYTES_PER_BLOCK     65536
+#define BYTES_PER_CHUNK     256
+#define KBYTES_PER_BLOCK    64
+#define CHUNKS_PER_KBYTE    4
+#define CHUNKS_PER_BLOCK    256
 
-#define CHUNK_SIZE_IN_BYTES 256
-#define CHUNKS_PER_KBYTE 4
-#define CHUNKS_PER_BLOCK 256
-
-#define TRY_COUNT  100000
+#define MAX_STATUS_CHECKS   100000
 
 typedef struct
 {
-	uint8_t flash_size_in_kb;
-	uint8_t flash_size_in_blocks;
+	unsigned int rom_size_in_kbytes;
 	uint8_t control_port;
 	uint8_t data_port;
 } tuxec_data_t;
 
 static bool tuxec_wait_for_ibuf(uint8_t status_port)
 {
-	int i = 0;
+	int i;
 
-	while ((INB(status_port) & EC_STS_IBF) != 0) {
-		if (i == TRY_COUNT) {
-			msg_pdbg("%s: output buf is empty\n", __func__);
+	for (i = 0; (INB(status_port) & EC_STS_IBF) != 0; ++i) {
+		if (i == MAX_STATUS_CHECKS) {
+			msg_pdbg("%s(): input buf is empty\n", __func__);
 			return false;
 		}
-
-		++i;
 	}
 
 	return true;
@@ -91,15 +72,13 @@ static bool tuxec_wait_for_ibuf(uint8_t status_port)
 
 static bool tuxec_wait_for_obuf(uint8_t status_port)
 {
-	int i = 0;
+	int i;
 
-	while ((INB(status_port) & EC_STS_OBF) == 0) {
-		if (i == TRY_COUNT) {
-			msg_pdbg("%s: output buf is empty\n", __func__);
+	for (i = 0; (INB(status_port) & EC_STS_OBF) == 0; ++i) {
+		if (i == MAX_STATUS_CHECKS) {
+			msg_pdbg("%s(): output buf is empty\n", __func__);
 			return false;
 		}
-
-		++i;
 	}
 
 	return true;
@@ -116,6 +95,13 @@ static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
 {
 	const bool success = tuxec_wait_for_obuf(ctx_data->control_port);
 	*data = INB(ctx_data->data_port);
+	return success;
+}
+
+static bool tuxec_write_byte(tuxec_data_t *ctx_data, uint8_t data)
+{
+	const bool success = tuxec_wait_for_ibuf(ctx_data->control_port);
+	OUTB(data, ctx_data->data_port);
 	return success;
 }
 
@@ -143,23 +129,24 @@ static uint8_t tuxec_query(uint8_t data)
 
 static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
+	uint8_t flash_size_in_blocks;
+
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
 	switch (tuxec_query(0xf9) & 0xf0) {
 	case 0x40:
-		ctx_data->flash_size_in_kb = 192;
-		ctx_data->flash_size_in_blocks = 3;
+		flash_size_in_blocks = 3;
 		break;
 	case 0xf0:
-		ctx_data->flash_size_in_kb = 255;
-		ctx_data->flash_size_in_blocks = 4;
+		flash_size_in_blocks = 4;
 		break;
 	default:
-		ctx_data->flash_size_in_kb = 128;
-		ctx_data->flash_size_in_blocks = 1;
+		flash_size_in_blocks = 1;
 		break;
 	}
+
+	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
 }
 
 static void tuxec_send_init(uint8_t data1, uint8_t data2)
@@ -180,11 +167,13 @@ static int tuxec_probe(struct flashctx *flash)
 
 	flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
 	flash->chip->tested = TEST_OK_PREW;
-	flash->chip->total_size = ctx_data->flash_size_in_kb;
+	flash->chip->total_size = ctx_data->rom_size_in_kbytes;
+	flash->chip->gran = write_gran_1024bytes;
+
 	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
 	flash->chip->block_erasers[0].eraseblocks[0].count =
-		ctx_data->flash_size_in_kb;
-	flash->chip->gran = write_gran_1024bytes;
+		ctx_data->rom_size_in_kbytes;
+
 	return 1;
 }
 
@@ -193,8 +182,8 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_byte = start - start%BLOCK_SIZE_IN_BYTES;
-	const unsigned int last_byte = ctx_data->flash_size_in_kb*1024;
+	const unsigned int first_byte = start - start%BYTES_PER_BLOCK;
+	const unsigned int last_byte = ctx_data->rom_size_in_kbytes*1024;
 
 	unsigned int offset;
 	uint8_t rom_byte;
@@ -202,9 +191,9 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 	int ret = 0;
 
 	for (offset = first_byte; offset < last_byte; ++offset) {
-		if (offset%BLOCK_SIZE_IN_BYTES == 0) {
+		if (offset%BYTES_PER_BLOCK == 0) {
 			tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK);
-			tuxec_write_cmd(ctx_data, offset/BLOCK_SIZE_IN_BYTES);
+			tuxec_write_cmd(ctx_data, offset/BYTES_PER_BLOCK);
 		}
 
 		if (!tuxec_read_byte(ctx_data, &rom_byte)) {
@@ -227,7 +216,9 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 	}
 
 	/* Finish reading the block. */
-	while (tuxec_read_byte (ctx_data, &rom_byte));
+	while (tuxec_read_byte(ctx_data, &rom_byte)) {
+		continue;
+	}
 
 	return ret;
 }
@@ -243,10 +234,8 @@ static void tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
 	tuxec_write_cmd(ctx_data, 0x02);
 	tuxec_write_cmd(ctx_data, 0x02);
 
-	for (i = 0; i < BLOCK_SIZE_IN_BYTES; ++i) {
-		tuxec_wait_for_ibuf(ctx_data->control_port);
-		OUTB(*buf, ctx_data->data_port);
-
+	for (i = 0; i < BYTES_PER_BLOCK; ++i) {
+		tuxec_write_byte(ctx_data, *buf);
 		++buf;
 	}
 }
@@ -256,8 +245,8 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_block = start/BLOCK_SIZE_IN_BYTES;
-	const unsigned int last_block = (start + len)/BLOCK_SIZE_IN_BYTES;
+	const unsigned int first_block = start/BYTES_PER_BLOCK;
+	const unsigned int last_block = (start + len)/BYTES_PER_BLOCK;
 
 	unsigned int block;
 	unsigned int offset = start;
@@ -266,34 +255,32 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 	int ret = 0;
 
 	for (block = first_block; block < last_block; ++block) {
-		const unsigned int block_start = block*BLOCK_SIZE_IN_BYTES;
+		const unsigned int block_start = block*BYTES_PER_BLOCK;
 
 		uint8_t *tmp_buf;
 		unsigned int block_end;
 		unsigned int update_size;
 
-		if (offset == block_start && left >= BLOCK_SIZE_IN_BYTES) {
+		if (offset == block_start && left >= BYTES_PER_BLOCK) {
 			tuxec_block_write(ctx_data, buf, block);
 
-			offset += BLOCK_SIZE_IN_BYTES;
-			left -= BLOCK_SIZE_IN_BYTES;
+			offset += BYTES_PER_BLOCK;
+			left -= BYTES_PER_BLOCK;
 			continue;
 		}
 
-		block_end = (block + 1)*BLOCK_SIZE_IN_BYTES;
+		block_end = (block + 1)*BYTES_PER_BLOCK;
 		update_size = min(left, block_end - start);
 
-		tmp_buf = (uint8_t *)malloc(BLOCK_SIZE_IN_BYTES);
+		tmp_buf = (uint8_t *)malloc(BYTES_PER_BLOCK);
 		if (!tmp_buf) {
-			msg_perr("Unable to allocate space for block buffer.\n");
+			msg_perr("Unable to allocate space for block "
+					"buffer.\n");
 			ret = 1;
 			break;
 		}
 
-		if (read_opaque(flash,
-				tmp_buf,
-				block_start,
-				BLOCK_SIZE_IN_BYTES)) {
+		if (read_opaque(flash, tmp_buf, block_start, BYTES_PER_BLOCK)) {
 			free(tmp_buf);
 			msg_perr("Unable to read block into buffer.\n");
 			ret = 1;
@@ -317,8 +304,8 @@ static int tuxec_erase(struct flashctx *flash,
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int first_chunk = start/CHUNK_SIZE_IN_BYTES;
-	const unsigned int last_chunk = (start + len)/CHUNK_SIZE_IN_BYTES;
+	const unsigned int first_chunk = start/BYTES_PER_CHUNK;
+	const unsigned int last_chunk = (start + len)/BYTES_PER_CHUNK;
 
 	unsigned int i;
 
@@ -348,7 +335,8 @@ static int tuxec_check_params(void)
 	int ret = 0;
 	char *const p = extract_programmer_param("type");
 	if (p && strcmp(p, "ec")) {
-		msg_pdbg("tuxec only supports \"ec\" type devices\n");
+		msg_pdbg("%s(): tuxec only supports \"ec\" type devices\n",
+				__func__);
 		ret = 1;
 	}
 
@@ -392,4 +380,5 @@ init_err_exit:
 	tuxec_shutdown(ctx_data);
 	return 1;
 }
+
 #endif
