@@ -181,9 +181,8 @@ static int tuxec_probe(struct flashctx *flash)
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
 	flash->chip->tested = TEST_OK_PREW;
+	flash->chip->page_size = BYTES_PER_BLOCK;
 	flash->chip->total_size = ctx_data->rom_size_in_kbytes;
-	/* Because there is no constant for 64 KBytes. */
-	flash->chip->gran = write_gran_1024bytes;
 
 	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
 	flash->chip->block_erasers[0].eraseblocks[0].count =
