@@ -41,7 +41,7 @@
 #define EC_STS_IBF          (1 << 1)
 #define EC_STS_OBF          (1 << 0)
 
-#define BYTES_PER_BLOCK     65536
+#define BYTES_PER_BLOCK     64*1024
 #define BYTES_PER_CHUNK     256
 #define KBYTES_PER_BLOCK    64
 #define CHUNKS_PER_KBYTE    4
