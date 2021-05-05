@@ -100,7 +100,7 @@ const struct programmer_entry programmer_table[] = {
 	{
 		.name			= "tuxec",
 		.type			= OTHER,
-		.devs.note		= "Embedded Controller of TUX laptops.\n",
+		.devs.note		= "Embedded Controller of Tuxedo laptops.\n",
 		.init			= tuxec_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,

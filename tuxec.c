@@ -15,7 +15,7 @@
  */
 
 /*
- * Contains programmer implementation for EC used by Tux laptops.
+ * Contains programmer implementation for EC used by Tuxedo laptops.
  */
 
 #if defined(__i386__) || defined(__x86_64__)

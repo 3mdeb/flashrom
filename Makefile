@@ -744,7 +744,7 @@ CONFIG_FT2232_SPI ?= yes
 # Microchip MEC1308 Embedded Controller
 CONFIG_MEC1308 ?= yes
 
-# Embedded Controller of TUX laptops.
+# Embedded Controller of Tuxedo laptops.
 CONFIG_TUXEC ?= yes
 
 # Always enable Altera USB-Blaster dongles for now.
