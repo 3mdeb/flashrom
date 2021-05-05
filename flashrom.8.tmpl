@@ -1352,6 +1352,24 @@ syntax where \fBfrequency\fP is the SPI clock frequency in kHz.
 If the passed frequency is not supported by the adapter the nearest lower
 supported frequency will be used.
 .SS
+.BR "tuxec " programmer
+.IP
+This module supports EC flash programming on Tuxedo laptops.
+.IP
+An optional
+.B portpair
+parameter specifies ports to use to read/write EC ROM data.
+Syntax is
+.sp
+.B "  flashrom \-p tuxec:portpair=pairnum"
+.sp
+where
+.B pairnum
+can be (data port/control port):
+.BR 0 " (0x60/0x64), " 1 " (0x62/0x66), " 2 " (0x68/0x6C) or " 3 " (0x6A/0x6E)"
+. The default is 1.
+.sp
+.SS
 
 .SH EXAMPLES
 To back up and update your BIOS, run

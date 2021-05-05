@@ -367,17 +367,42 @@ static struct opaque_master programmer_tuxec = {
 	.erase		= tuxec_erase,
 };
 
-static bool tuxec_check_params(void)
+static bool tuxec_check_params(tuxec_data_t *ctx_data)
 {
+	char *p;
+
 	bool ret = true;
-	char *const p = extract_programmer_param("type");
+
+	p = extract_programmer_param("type");
 	if (p && strcmp(p, "ec")) {
 		msg_pdbg("%s(): tuxec only supports \"ec\" type devices\n",
 			 __func__);
 		ret = false;
 	}
-
 	free(p);
+
+	p = extract_programmer_param("portpair");
+	if (p) {
+		if (!strcmp(p, "0")) {
+			ctx_data->control_port = 0x64;
+			ctx_data->data_port = 0x60;
+		} else if (!strcmp(p, "1")) {
+			ctx_data->control_port = 0x66;
+			ctx_data->data_port = 0x62;
+		} else if (!strcmp(p, "2")) {
+			ctx_data->control_port = 0x6c;
+			ctx_data->data_port = 0x68;
+		} else if (!strcmp(p, "3")) {
+			ctx_data->control_port = 0x6e;
+			ctx_data->data_port = 0x6a;
+		} else {
+			msg_pdbg("%s(): incorrect portpair param value: %s\n",
+				__func__, p);
+			ret = false;
+		}
+	}
+	free(p);
+
 	return ret;
 }
 
@@ -387,14 +412,16 @@ int tuxec_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
-	if (!tuxec_check_params())
-		return 1;
-
 	ctx_data = calloc(1, sizeof(tuxec_data_t));
 	if (!ctx_data) {
 		msg_perr("Unable to allocate space for extra context data.\n");
 		return 1;
 	}
+
+	tuxec_init_ctx(ctx_data);
+
+	if (!tuxec_check_params(ctx_data))
+		goto init_err_exit;
 
 	if (!tuxec_write_reg(0xf9, 0x20) ||
 	    !tuxec_write_reg(0xfa, 0x02) ||
@@ -403,8 +430,6 @@ int tuxec_init(void)
 		msg_perr("Unable to initialize controller.\n");
 		goto init_err_exit;
 	}
-
-	tuxec_init_ctx(ctx_data);
 
 	programmer_tuxec.data = ctx_data;
 
