@@ -34,8 +34,8 @@
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
 #define EC_CMD_ERASE_KBYTE  0x05
-#define EC_CMD_QUERY        0x80
-#define EC_CMD_INIT         0x81
+#define EC_CMD_READ_REG     0x80
+#define EC_CMD_WRITE_REG    0x81
 #define EC_CMD_FINISH       0xfe
 
 #define EC_STS_IBF          (1 << 1)
@@ -116,19 +116,36 @@ static int tuxec_shutdown(void *data)
 	return 0;
 }
 
-static bool tuxec_query(uint8_t in, uint8_t *out)
+static bool tuxec_read_reg(uint8_t address, uint8_t *data)
 {
 	if (!tuxec_wait_for_ibuf(EC_CONTROL))
 		return false;
-	OUTB(EC_CMD_QUERY, EC_CONTROL);
+	OUTB(EC_CMD_READ_REG, EC_CONTROL);
 
 	if (!tuxec_wait_for_ibuf(EC_CONTROL))
 		return false;
-	OUTB(in, EC_DATA);
+	OUTB(address, EC_DATA);
 
 	if (!tuxec_wait_for_ibuf(EC_CONTROL))
 		return false;
-	*out = INB(EC_DATA);
+	*data = INB(EC_DATA);
+
+	return true;
+}
+
+static bool tuxec_write_reg(uint8_t address, uint8_t data)
+{
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
+	OUTB(EC_CMD_WRITE_REG, EC_CONTROL);
+
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
+	OUTB(address, EC_DATA);
+
+	if (!tuxec_wait_for_ibuf(EC_CONTROL))
+		return false;
+	OUTB(data, EC_DATA);
 
 	return true;
 }
@@ -141,7 +158,7 @@ static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
-	if (!tuxec_query(0xf9, &response))
+	if (!tuxec_read_reg(0xf9, &response))
 		response = 0;
 
 	switch (response & 0xf0) {
@@ -157,23 +174,6 @@ static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 	}
 
 	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
-}
-
-static bool tuxec_send_init(uint8_t data1, uint8_t data2)
-{
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(EC_CMD_INIT, EC_CONTROL);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(data1, EC_DATA);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(data2, EC_DATA);
-
-	return true;
 }
 
 static int tuxec_probe(struct flashctx *flash)
@@ -396,10 +396,10 @@ int tuxec_init(void)
 		return 1;
 	}
 
-	if (!tuxec_send_init(0xf9, 0x20) ||
-	    !tuxec_send_init(0xfa, 0x02) ||
-	    !tuxec_send_init(0xfb, 0x00) ||
-	    !tuxec_send_init(0xf8, 0xb1)) {
+	if (!tuxec_write_reg(0xf9, 0x20) ||
+	    !tuxec_write_reg(0xfa, 0x02) ||
+	    !tuxec_write_reg(0xfb, 0x00) ||
+	    !tuxec_write_reg(0xf8, 0xb1)) {
 		msg_perr("Unable to initialize controller.\n");
 		goto init_err_exit;
 	}
