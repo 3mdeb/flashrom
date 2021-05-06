@@ -422,12 +422,6 @@ int tuxec_init(void)
 		return 1;
 	}
 
-	if (!tuxec_init_ctx(ctx_data))
-		goto init_err_exit;
-
-	if (!tuxec_check_params(ctx_data))
-		goto init_err_exit;
-
 	if (!tuxec_write_reg(0xf9, 0x20) ||
 	    !tuxec_write_reg(0xfa, 0x02) ||
 	    !tuxec_write_reg(0xfb, 0x00) ||
@@ -435,6 +429,12 @@ int tuxec_init(void)
 		msg_perr("Unable to initialize controller.\n");
 		goto init_err_exit;
 	}
+
+	if (!tuxec_init_ctx(ctx_data))
+		goto init_err_exit;
+
+	if (!tuxec_check_params(ctx_data))
+		goto init_err_exit;
 
 	programmer_tuxec.data = ctx_data;
 
