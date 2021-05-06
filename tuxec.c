@@ -54,6 +54,7 @@ typedef struct
 	unsigned int rom_size_in_kbytes;
 	uint8_t control_port;
 	uint8_t data_port;
+	bool ac_adapter_plugged;
 } tuxec_data_t;
 
 static bool tuxec_wait_for_ibuf(uint8_t status_port)
@@ -153,17 +154,16 @@ static bool tuxec_write_reg(uint8_t address, uint8_t data)
 static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	uint8_t flash_size_in_blocks;
-	uint8_t response;
+	uint8_t reg_value;
 
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
-	if (!tuxec_read_reg(0xf9, &response)) {
+	if (!tuxec_read_reg(0xf9, &reg_value)) {
 		msg_perr("Failed to query flash ROM size.\n");
 		return false;
 	}
-
-	switch (response & 0xf0) {
+	switch (reg_value & 0xf0) {
 	case 0x40:
 		flash_size_in_blocks = 3;
 		break;
@@ -174,6 +174,12 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		flash_size_in_blocks = 1;
 		break;
 	}
+
+	if (!tuxec_read_reg(0x10, &reg_value)) {
+		msg_perr("Failed to query AC adapter state.\n");
+		return false;
+	}
+	ctx_data->ac_adapter_plugged = reg_value & 0x01;
 
 	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
 
@@ -435,6 +441,11 @@ int tuxec_init(void)
 
 	if (!tuxec_check_params(ctx_data))
 		goto init_err_exit;
+
+	if (!ctx_data->ac_adapter_plugged) {
+		msg_perr("AC adapter is not plugged.\n");
+		goto init_err_exit;
+	}
 
 	programmer_tuxec.data = ctx_data;
 
