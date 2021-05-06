@@ -150,7 +150,7 @@ static bool tuxec_write_reg(uint8_t address, uint8_t data)
 	return true;
 }
 
-static void tuxec_init_ctx(tuxec_data_t *ctx_data)
+static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	uint8_t flash_size_in_blocks;
 	uint8_t response;
@@ -158,8 +158,10 @@ static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
-	if (!tuxec_read_reg(0xf9, &response))
-		response = 0;
+	if (!tuxec_read_reg(0xf9, &response)) {
+		msg_perr("Failed to query flash ROM size.\n");
+		return false;
+	}
 
 	switch (response & 0xf0) {
 	case 0x40:
@@ -174,6 +176,8 @@ static void tuxec_init_ctx(tuxec_data_t *ctx_data)
 	}
 
 	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
+
+	return true;
 }
 
 static int tuxec_probe(struct flashctx *flash)
@@ -418,7 +422,8 @@ int tuxec_init(void)
 		return 1;
 	}
 
-	tuxec_init_ctx(ctx_data);
+	if (!tuxec_init_ctx(ctx_data))
+		goto init_err_exit;
 
 	if (!tuxec_check_params(ctx_data))
 		goto init_err_exit;
