@@ -426,6 +426,9 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 
 int tuxec_init(void)
 {
+	bool read_success;
+	uint8_t write_type;
+
 	tuxec_data_t *ctx_data = NULL;
 
 	msg_pdbg("%s(): entered\n", __func__);
@@ -449,6 +452,20 @@ int tuxec_init(void)
 
 	if (!tuxec_check_params(ctx_data))
 		goto init_err_exit;
+
+
+	if (!tuxec_write_cmd(ctx_data, 0xde) ||
+	    !tuxec_write_cmd(ctx_data, 0xdc) ||
+	    !tuxec_write_cmd(ctx_data, 0xf0)) {
+		msg_perr("Failed to write identification commands.\n");
+		goto init_err_exit;
+	}
+
+	read_success = tuxec_read_byte(ctx_data, &write_type);
+	if (read_success && write_type != 0 && write_type != 0xff) {
+		msg_perr("ITE5570 is not supported.\n");
+		goto init_err_exit;
+	}
 
 	if (!ctx_data->ac_adapter_plugged) {
 		msg_perr("AC adapter is not plugged.\n");
