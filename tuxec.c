@@ -365,6 +365,7 @@ static int tuxec_erase(struct flashctx *flash,
 		internal_sleep(1000);
 	}
 
+	internal_sleep(100000);
 	return ret;
 }
 
