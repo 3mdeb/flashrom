@@ -413,6 +413,13 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 	}
 	free(p);
 
+	p = extract_programmer_param("noaccheck");
+	if (p && strcmp(p, "yes") == 0) {
+		/* Assume it's always present. */
+		ctx_data->ac_adapter_plugged = true;
+	}
+	free(p);
+
 	return ret;
 }
 
