@@ -49,9 +49,29 @@
 
 #define MAX_STATUS_CHECKS   100000
 
+enum autoloadaction {
+	AUTOLOAD_NO_ACTION,
+	AUTOLOAD_DISABLE,
+	AUTOLOAD_SETON,
+	AUTOLOAD_SETOFF
+};
+
+enum autoloadpatchstate {
+	AUTOLOAD_NONE,
+	AUTOLOAD_ONE_BYTE,
+	AUTOLOAD_TWO_BYTES,
+	AUTOLOAD_THREE_BYTES
+};
+
 typedef struct
 {
+	unsigned int rom_size_in_blocks;
 	unsigned int rom_size_in_kbytes;
+
+	unsigned int autoload_offset; /* meaningful if state != AUTOLOAD_NONE */
+	enum autoloadpatchstate autoload_state;
+	enum autoloadaction autload_action;
+
 	uint8_t control_port;
 	uint8_t data_port;
 	bool ac_adapter_plugged;
@@ -153,7 +173,6 @@ static bool tuxec_write_reg(uint8_t address, uint8_t data)
 
 static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
-	uint8_t flash_size_in_blocks;
 	uint8_t reg_value;
 
 	ctx_data->control_port = EC_CONTROL;
@@ -165,13 +184,13 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	}
 	switch (reg_value & 0xf0) {
 	case 0x40:
-		flash_size_in_blocks = 3;
+		ctx_data->rom_size_in_blocks = 3;
 		break;
 	case 0xf0:
-		flash_size_in_blocks = 4;
+		ctx_data->rom_size_in_blocks = 4;
 		break;
 	default:
-		flash_size_in_blocks = 1;
+		ctx_data->rom_size_in_blocks = 1;
 		break;
 	}
 
@@ -181,7 +200,8 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	}
 	ctx_data->ac_adapter_plugged = reg_value & 0x01;
 
-	ctx_data->rom_size_in_kbytes = flash_size_in_blocks*KBYTES_PER_BLOCK;
+	ctx_data->rom_size_in_kbytes =
+		ctx_data->rom_size_in_blocks*KBYTES_PER_BLOCK;
 
 	return true;
 }
@@ -247,9 +267,69 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 	return ret;
 }
 
-static bool tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
+static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
+				uint8_t data)
+{
+	if (ctx_data->autoload_state != AUTOLOAD_THREE_BYTES)
+		return tuxec_write_byte(ctx_data, data);
+
+	switch (ctx_data->autload_action) {
+	case AUTOLOAD_NO_ACTION:
+		return tuxec_write_byte(ctx_data, data);
+
+	case AUTOLOAD_DISABLE:
+		if (offset == ctx_data->autoload_offset + 2) {
+			if (ctx_data->rom_size_in_blocks == 1 ||
+			    ctx_data->rom_size_in_blocks == 2) {
+				data = 0x94;
+			} else {
+				data = 0x85;
+			}
+		} else if (offset == ctx_data->autoload_offset + 8) {
+			data = 0x00;
+		}
+		break;
+
+	case AUTOLOAD_SETON:
+		if (offset == ctx_data->autoload_offset + 2) {
+			if (ctx_data->rom_size_in_blocks == 1 ||
+			    ctx_data->rom_size_in_blocks == 2) {
+				data = 0x94;
+			} else {
+				data = 0x85;
+			}
+		} else if (offset == ctx_data->autoload_offset + 8) {
+			if (ctx_data->rom_size_in_blocks == 1 ||
+			    ctx_data->rom_size_in_blocks == 2) {
+				data = 0x7f;
+			} else {
+				data = 0xbe;
+			}
+		}
+		break;
+
+	case AUTOLOAD_SETOFF:
+		if (offset == ctx_data->autoload_offset + 2) {
+			if (ctx_data->rom_size_in_blocks == 1 ||
+			    ctx_data->rom_size_in_blocks == 2) {
+				data = 0xa5;
+			} else {
+				data = 0xb5;
+			}
+		} else if (offset == ctx_data->autoload_offset + 8) {
+			data = 0xaa;
+		}
+		break;
+	}
+
+	return tuxec_write_byte(ctx_data, data);
+}
+
+static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
+	const unsigned int block_start = block*BYTES_PER_BLOCK;
+
 	unsigned int i;
 
 	bool ret = true;
@@ -262,12 +342,48 @@ static bool tuxec_block_write(tuxec_data_t *ctx_data, const uint8_t *buf,
 		ret = false;
 
 	for (i = 0; i < BYTES_PER_BLOCK; ++i) {
-		if (!tuxec_write_byte(ctx_data, *buf))
+		if (!tuxec_write_patched(ctx_data, block_start  + i, *buf))
 			ret = false;
 		++buf;
 	}
 
 	return ret;
+}
+
+static void tuxec_update_autoload_state(tuxec_data_t *ctx_data,
+					const uint8_t *buf,
+					unsigned int start, unsigned int len)
+{
+	unsigned int i;
+
+	if (ctx_data->autload_action == AUTOLOAD_NO_ACTION ||
+	    ctx_data->autoload_state == AUTOLOAD_THREE_BYTES)
+		return;
+
+	for (i = 0; i < len; ++i) {
+		switch (ctx_data->autoload_state) {
+		case AUTOLOAD_NONE:
+			if (buf[i] == 0xa5) {
+				ctx_data->autoload_state = AUTOLOAD_ONE_BYTE;
+			}
+			continue;
+		case AUTOLOAD_ONE_BYTE:
+			if (buf[i] == 0xa5 || buf[i] == 0xa4) {
+				ctx_data->autoload_state = AUTOLOAD_TWO_BYTES;
+			}
+			continue;
+		case AUTOLOAD_TWO_BYTES:
+			if (buf[i] == 0x5a) {
+				ctx_data->autoload_state = AUTOLOAD_THREE_BYTES;
+				ctx_data->autoload_offset = start + i;
+			}
+			continue;
+		case AUTOLOAD_THREE_BYTES:
+			return;
+		}
+
+		ctx_data->autoload_state = AUTOLOAD_NONE;
+	}
 }
 
 static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
@@ -287,6 +403,8 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 	if (end%BYTES_PER_BLOCK != 0)
 		++to_block;
 
+	tuxec_update_autoload_state(ctx_data, buf, start, len);
+
 	for (block = from_block; block < to_block; ++block) {
 		const unsigned int block_start = block*BYTES_PER_BLOCK;
 
@@ -295,7 +413,7 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 		unsigned int update_size;
 
 		if (offset == block_start && left >= BYTES_PER_BLOCK) {
-			if (!tuxec_block_write(ctx_data, buf, block)) {
+			if (!tuxec_write_block(ctx_data, buf, block)) {
 				msg_perr("Unable to write full block.\n");
 				return 1;
 			}
@@ -323,7 +441,7 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 
 		memcpy(tmp_buf + (offset - block_start), buf, update_size);
 
-		if (!tuxec_block_write(ctx_data, tmp_buf, block)) {
+		if (!tuxec_write_block(ctx_data, tmp_buf, block)) {
 			free(tmp_buf);
 			msg_perr("Unable to write updated block.\n");
 			return 1;
