@@ -116,6 +116,33 @@ int register_superio(struct superio s)
 
 #endif /* IS_X86 */
 
+#if CONFIG_TUXEC
+
+static bool unlock_me(void)
+{
+	uint8_t data;
+
+	if (!tuxec_wait_for_ibuf(0x66)) {
+		msg_perr("Failed to start ME unlocking.\n");
+		return false;
+	}
+	OUTB(0xc2, 0x66);
+
+	if (!tuxec_read_reg(0xda, &data)) {
+		msg_perr("Failed to read ME state register\n");
+		return false;
+	}
+
+	if (!tuxec_write_reg(0xda, data | 0x08)) {
+		msg_perr("Failed to update ME state register\n");
+		return false;
+	}
+
+	return true;
+}
+
+#endif /* CONFIG_TUXEC */
+
 static void internal_chip_writeb(const struct flashctx *flash, uint8_t val,
 				 chipaddr addr)
 {
@@ -181,6 +208,9 @@ int internal_init(void)
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
 #endif
+#if CONFIG_TUXEC
+    bool unlock_me_only = false;
+#endif
 	char *arg;
 
 	arg = extract_programmer_param("boardenable");
@@ -240,10 +270,40 @@ int internal_init(void)
 	}
 	free(arg);
 
+#if CONFIG_TUXEC
+	arg = extract_programmer_param("unlockmeonly");
+	if (arg && !strcmp(arg, "yes")) {
+        unlock_me_only = true;
+	} else if (arg && !strlen(arg)) {
+		msg_perr("Missing argument for unlockmeonly.\n");
+		free(arg);
+		return 1;
+	} else if (arg) {
+		msg_perr("Unknown argument for unlockmeonly: %s.\n", arg);
+		free(arg);
+		return 1;
+    }
+	free(arg);
+#endif
+
 	if (rget_io_perms()) {
 		ret = 1;
 		goto internal_init_exit;
 	}
+
+#if CONFIG_TUXEC
+    /* TODO: limit this to a specific board which it targets. */
+    if (unlock_me_only) {
+		if (unlock_me()) {
+            msg_pwarn("Successfully unlocked ME region, reboot for it to take "
+                      "effect\n");
+            ret = 0;
+        } else {
+            ret = 1;
+        }
+		goto internal_init_exit;
+    }
+#endif
 
 	/* Default to Parallel/LPC/FWH flash devices. If a known host controller
 	 * is found, the host controller init routine sets the

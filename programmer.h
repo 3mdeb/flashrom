@@ -712,6 +712,9 @@ int mec1308_init(void);
 /* tuxec.c */
 #if CONFIG_TUXEC == 1
 int tuxec_init(void);
+bool tuxec_wait_for_ibuf(uint8_t status_port);
+bool tuxec_read_reg(uint8_t address, uint8_t *data);
+bool tuxec_write_reg(uint8_t address, uint8_t data);
 #endif
 
 /* sb600spi.c */

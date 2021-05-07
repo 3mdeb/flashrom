@@ -81,7 +81,7 @@ typedef struct
 	bool ac_adapter_plugged;
 } tuxec_data_t;
 
-static bool tuxec_wait_for_ibuf(uint8_t status_port)
+bool tuxec_wait_for_ibuf(uint8_t status_port)
 {
 	int i;
 
@@ -141,7 +141,7 @@ static int tuxec_shutdown(void *data)
 	return 0;
 }
 
-static bool tuxec_read_reg(uint8_t address, uint8_t *data)
+bool tuxec_read_reg(uint8_t address, uint8_t *data)
 {
 	if (!tuxec_wait_for_ibuf(EC_CONTROL))
 		return false;
@@ -158,7 +158,7 @@ static bool tuxec_read_reg(uint8_t address, uint8_t *data)
 	return true;
 }
 
-static bool tuxec_write_reg(uint8_t address, uint8_t data)
+bool tuxec_write_reg(uint8_t address, uint8_t data)
 {
 	if (!tuxec_wait_for_ibuf(EC_CONTROL))
 		return false;
