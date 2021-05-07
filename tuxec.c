@@ -585,45 +585,44 @@ int tuxec_init(void)
 	    !tuxec_write_reg(0xfb, 0x00) ||
 	    !tuxec_write_reg(0xf8, 0xb1)) {
 		msg_perr("Unable to initialize controller.\n");
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	}
 
 	if (!tuxec_init_ctx(ctx_data))
-		goto init_err_exit;
+		goto tuxec_init_exit;
 
 	if (!tuxec_check_params(ctx_data))
-		goto init_err_exit;
-
+		goto tuxec_init_exit;
 
 	if (!tuxec_write_cmd(ctx_data, 0xde) ||
 	    !tuxec_write_cmd(ctx_data, 0xdc) ||
 	    !tuxec_write_cmd(ctx_data, 0xf0)) {
 		msg_perr("Failed to write identification commands.\n");
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	}
 
 	read_success = tuxec_read_byte(ctx_data, &write_type);
 	if (read_success && write_type != 0 && write_type != 0xff) {
 		msg_perr("ITE5570 is not supported.\n");
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	}
 
 	if (!ctx_data->ac_adapter_plugged) {
 		msg_perr("AC adapter is not plugged.\n");
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	}
 
 	programmer_tuxec.data = ctx_data;
 
 	if (register_shutdown(tuxec_shutdown, ctx_data))
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	if (register_opaque_master(&programmer_tuxec))
-		goto init_err_exit;
+		goto tuxec_init_exit;
 	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
 
 	return 0;
 
-init_err_exit:
+tuxec_init_exit:
 	tuxec_shutdown(ctx_data);
 	return 1;
 }
