@@ -1366,7 +1366,7 @@ Syntax is
 where
 .B pairnum
 can be (data port/control port):
-.BR 0 " (0x60/0x64), " 1 " (0x62/0x66), " 2 " (0x68/0x6C) or " 3 " (0x6A/0x6E)"
+.BR 0 " (0x60/0x64), " 1 " (0x62/0x66), " 2 " (0x68/0x6C) or " 3 " (0x6A/0x6E)."
 . The default is 1.
 .sp
 An optional
@@ -1376,6 +1376,19 @@ otherwise.
 Syntax is
 .sp
 .B "  flashrom \-p tuxec:noaccheck=yes"
+.sp
+An optional
+.B autload
+parameter specifies how to treat autoloading.
+Syntax is
+.sp
+.B "  flashrom \-p tuxec:autoload=action"
+.sp
+where
+.B action
+can be:
+.BR none ", " disable ", " on " or " enable "."
+. The default is none.
 .sp
 .SS
 

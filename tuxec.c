@@ -56,6 +56,7 @@ enum autoloadaction {
 	AUTOLOAD_SETOFF
 };
 
+
 enum autoloadpatchstate {
 	AUTOLOAD_NONE,
 	AUTOLOAD_ONE_BYTE,
@@ -510,6 +511,13 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 	}
 	free(p);
 
+	p = extract_programmer_param("noaccheck");
+	if (p && strcmp(p, "yes") == 0) {
+		/* Assume it's always present. */
+		ctx_data->ac_adapter_plugged = true;
+	}
+	free(p);
+
 	p = extract_programmer_param("portpair");
 	if (p) {
 		if (!strcmp(p, "0")) {
@@ -532,10 +540,21 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 	}
 	free(p);
 
-	p = extract_programmer_param("noaccheck");
-	if (p && strcmp(p, "yes") == 0) {
-		/* Assume it's always present. */
-		ctx_data->ac_adapter_plugged = true;
+	p = extract_programmer_param("autoload");
+	if (p) {
+		if (!strcmp(p, "none")) {
+			ctx_data->autload_action = AUTOLOAD_NO_ACTION;
+		} else if (!strcmp(p, "disable")) {
+			ctx_data->autload_action = AUTOLOAD_DISABLE;
+		} else if (!strcmp(p, "on")) {
+			ctx_data->autload_action = AUTOLOAD_SETON;
+		} else if (!strcmp(p, "off")) {
+			ctx_data->autload_action = AUTOLOAD_SETOFF;
+		} else {
+			msg_pdbg("%s(): incorrect autoload param value: %s\n",
+				__func__, p);
+			ret = false;
+		}
 	}
 	free(p);
 
