@@ -56,12 +56,15 @@ enum autoloadaction {
 	AUTOLOAD_SETOFF
 };
 
-
-enum autoloadpatchstate {
+/* Need to match a pattern that spans 6 bytes to find patching place */
+enum autoloadseekstate {
 	AUTOLOAD_NONE,
 	AUTOLOAD_ONE_BYTE,
 	AUTOLOAD_TWO_BYTES,
-	AUTOLOAD_THREE_BYTES
+	AUTOLOAD_THREE_BYTES,
+	AUTOLOAD_FOUR_BYTES,
+	AUTOLOAD_FIVE_BYTES,
+	AUTOLOAD_SIX_BYTES
 };
 
 typedef struct
@@ -69,8 +72,8 @@ typedef struct
 	unsigned int rom_size_in_blocks;
 	unsigned int rom_size_in_kbytes;
 
-	unsigned int autoload_offset; /* meaningful if state != AUTOLOAD_NONE */
-	enum autoloadpatchstate autoload_state;
+	unsigned int autoload_offset; /* meaningful for AUTOLOAD_SIX_BYTES */
+	enum autoloadseekstate autoload_state;
 	enum autoloadaction autload_action;
 
 	uint8_t control_port;
@@ -271,52 +274,32 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 				uint8_t data)
 {
-	if (ctx_data->autoload_state != AUTOLOAD_THREE_BYTES)
+	const bool blocks_1_2 = ctx_data->rom_size_in_blocks == 1 ||
+				ctx_data->rom_size_in_blocks == 2;
+
+	if (ctx_data->autoload_state != AUTOLOAD_SIX_BYTES)
 		return tuxec_write_byte(ctx_data, data);
 
 	switch (ctx_data->autload_action) {
 	case AUTOLOAD_NO_ACTION:
 		return tuxec_write_byte(ctx_data, data);
-
 	case AUTOLOAD_DISABLE:
 		if (offset == ctx_data->autoload_offset + 2) {
-			if (ctx_data->rom_size_in_blocks == 1 ||
-			    ctx_data->rom_size_in_blocks == 2) {
-				data = 0x94;
-			} else {
-				data = 0x85;
-			}
+			data = (blocks_1_2 ? 0x94 : 0x85);
 		} else if (offset == ctx_data->autoload_offset + 8) {
 			data = 0x00;
 		}
 		break;
-
 	case AUTOLOAD_SETON:
 		if (offset == ctx_data->autoload_offset + 2) {
-			if (ctx_data->rom_size_in_blocks == 1 ||
-			    ctx_data->rom_size_in_blocks == 2) {
-				data = 0x94;
-			} else {
-				data = 0x85;
-			}
+			data = (blocks_1_2 ? 0x94 : 0x85);
 		} else if (offset == ctx_data->autoload_offset + 8) {
-			if (ctx_data->rom_size_in_blocks == 1 ||
-			    ctx_data->rom_size_in_blocks == 2) {
-				data = 0x7f;
-			} else {
-				data = 0xbe;
-			}
+			data = (blocks_1_2 ? 0x7f : 0xbe);
 		}
 		break;
-
 	case AUTOLOAD_SETOFF:
 		if (offset == ctx_data->autoload_offset + 2) {
-			if (ctx_data->rom_size_in_blocks == 1 ||
-			    ctx_data->rom_size_in_blocks == 2) {
-				data = 0xa5;
-			} else {
-				data = 0xb5;
-			}
+			data = (blocks_1_2 ? 0xa5 : 0xb5);
 		} else if (offset == ctx_data->autoload_offset + 8) {
 			data = 0xaa;
 		}
@@ -329,10 +312,9 @@ static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
-	const unsigned int block_start = block*BYTES_PER_BLOCK;
-
 	unsigned int i;
 
+	unsigned int offset = block*BYTES_PER_BLOCK;
 	bool ret = true;
 
 	if (!tuxec_write_cmd(ctx_data, EC_CMD_WRITE_BLOCK) ||
@@ -342,44 +324,66 @@ static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 	    !tuxec_write_cmd(ctx_data, 0x02))
 		ret = false;
 
-	for (i = 0; i < BYTES_PER_BLOCK; ++i) {
-		if (!tuxec_write_patched(ctx_data, block_start  + i, *buf))
+	for (i = 0; i < BYTES_PER_BLOCK; ++i, ++offset) {
+		if (!tuxec_write_patched(ctx_data, offset, buf[i]))
 			ret = false;
-		++buf;
 	}
 
 	return ret;
 }
 
+/* The assumption is that writing is done sequentially */
 static void tuxec_update_autoload_state(tuxec_data_t *ctx_data,
 					const uint8_t *buf,
 					unsigned int start, unsigned int len)
 {
 	unsigned int i;
 
+	unsigned int offset = start;
+
 	if (ctx_data->autload_action == AUTOLOAD_NO_ACTION ||
-	    ctx_data->autoload_state == AUTOLOAD_THREE_BYTES)
+	    ctx_data->autoload_state == AUTOLOAD_SIX_BYTES)
 		return;
 
-	for (i = 0; i < len; ++i) {
+	for (i = 0; i < len; ++i, ++offset) {
 		switch (ctx_data->autoload_state) {
 		case AUTOLOAD_NONE:
-			if (buf[i] == 0xa5) {
-				ctx_data->autoload_state = AUTOLOAD_ONE_BYTE;
-			}
+			if (buf[i] != 0xa5)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_ONE_BYTE;
+			ctx_data->autoload_offset = offset;
 			continue;
 		case AUTOLOAD_ONE_BYTE:
-			if (buf[i] == 0xa5 || buf[i] == 0xa4) {
-				ctx_data->autoload_state = AUTOLOAD_TWO_BYTES;
-			}
+			if (offset - ctx_data->autoload_offset != 1)
+				break;
+			if (buf[i] != 0xa5 && buf[i] != 0xa4)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_TWO_BYTES;
 			continue;
 		case AUTOLOAD_TWO_BYTES:
-			if (buf[i] == 0x5a) {
-				ctx_data->autoload_state = AUTOLOAD_THREE_BYTES;
-				ctx_data->autoload_offset = start + i;
-			}
+			if (offset - ctx_data->autoload_offset != 2)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_THREE_BYTES;
 			continue;
 		case AUTOLOAD_THREE_BYTES:
+			if (offset - ctx_data->autoload_offset != 3)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_FOUR_BYTES;
+			continue;
+		case AUTOLOAD_FOUR_BYTES:
+			if (offset - ctx_data->autoload_offset != 4)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_FIVE_BYTES;
+			continue;
+		case AUTOLOAD_FIVE_BYTES:
+			if (offset - ctx_data->autoload_offset != 5)
+				break;
+			if (buf[i] != 0x5a)
+				break;
+			ctx_data->autoload_state = AUTOLOAD_SIX_BYTES;
+			continue;
+		case AUTOLOAD_SIX_BYTES:
+			/* Done matching. */
 			return;
 		}
 
