@@ -31,6 +31,7 @@
 #define EC_DATA             0x62
 #define EC_CONTROL          0x66
 
+#define EC_CMD_ERASE_ALL    0x01
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
 #define EC_CMD_ERASE_KBYTE  0x05
@@ -77,7 +78,7 @@ typedef struct
 	enum autoloadaction autload_action;
 
 	uint8_t *first_kbyte;
-	bool special_write;
+	bool support_ite5570;
 
 	uint8_t control_port;
 	uint8_t data_port;
@@ -86,7 +87,7 @@ typedef struct
 
 bool tuxec_wait_for_ibuf(uint8_t status_port)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; (INB(status_port) & EC_STS_IBF) != 0; ++i) {
 		if (i == MAX_STATUS_CHECKS) {
@@ -98,12 +99,12 @@ bool tuxec_wait_for_ibuf(uint8_t status_port)
 	return true;
 }
 
-static bool tuxec_wait_for_obuf(uint8_t status_port)
+static bool tuxec_wait_for_obuf(uint8_t status_port, unsigned int max_checks)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; (INB(status_port) & EC_STS_OBF) == 0; ++i) {
-		if (i == MAX_STATUS_CHECKS) {
+		if (i == max_checks) {
 			msg_pdbg("%s(): output buf is empty\n", __func__);
 			return false;
 		}
@@ -121,7 +122,8 @@ static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 
 static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
 {
-	const bool success = tuxec_wait_for_obuf(ctx_data->control_port);
+	const bool success = tuxec_wait_for_obuf(ctx_data->control_port,
+						 MAX_STATUS_CHECKS);
 	*data = INB(ctx_data->data_port);
 	return success;
 }
@@ -226,9 +228,15 @@ static int tuxec_probe(struct flashctx *flash)
 	flash->chip->page_size = BYTES_PER_BLOCK;
 	flash->chip->total_size = ctx_data->rom_size_in_kbytes;
 
-	flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
-	flash->chip->block_erasers[0].eraseblocks[0].count =
-		ctx_data->rom_size_in_kbytes;
+	if (ctx_data->support_ite5570) {
+		flash->chip->block_erasers[0].eraseblocks[0].size = 1024;
+		flash->chip->block_erasers[0].eraseblocks[0].count =
+			ctx_data->rom_size_in_kbytes;
+	} else {
+		flash->chip->block_erasers[0].eraseblocks[0].size =
+			ctx_data->rom_size_in_kbytes*1024;
+		flash->chip->block_erasers[0].eraseblocks[0].count = 1;
+	}
 
 	return 1;
 }
@@ -321,7 +329,7 @@ static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
-	const unsigned int param = ctx_data->special_write ? 0x00 : 0x02;
+	const unsigned int param = ctx_data->support_ite5570 ? 0x00 : 0x02;
 
 	unsigned int offset = block*BYTES_PER_BLOCK;
 	unsigned int third_param = param;
@@ -329,7 +337,7 @@ static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 	bool ret = true;
 
 	/* Stash first kilobyte and write it after the last block. */
-	if (ctx_data->special_write && block == 0) {
+	if (ctx_data->support_ite5570 && block == 0) {
 		ctx_data->first_kbyte = (uint8_t *)malloc(1024);
 		if (!ctx_data->first_kbyte) {
 			msg_perr("Failed to allocate memory for a stash.\n");
@@ -354,7 +362,7 @@ static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 	}
 
 	/* If we're done, write the first kilobyte separately. */
-	if (ctx_data->special_write &&
+	if (ctx_data->support_ite5570 &&
 	    block == ctx_data->rom_size_in_blocks - 1) {
 		if (!ctx_data->first_kbyte) {
 			msg_perr("No first KB stash was found.\n");
@@ -506,11 +514,36 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 	return 0;
 }
 
-static int tuxec_erase(struct flashctx *flash,
-		       unsigned int start, unsigned int len)
+static int tuxec_full_erase(tuxec_data_t *ctx_data)
 {
-	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+	unsigned int i;
 
+	if (!tuxec_write_cmd(ctx_data, EC_CMD_ERASE_ALL) ||
+	    !tuxec_write_cmd(ctx_data, 0x00) ||
+	    !tuxec_write_cmd(ctx_data, 0x00) ||
+	    !tuxec_write_cmd(ctx_data, 0x00) ||
+	    !tuxec_write_cmd(ctx_data, 0x00))
+		return 1;
+
+	if (ctx_data->rom_size_in_blocks < 3) {
+		internal_sleep(15000*64);
+		return 0;
+	}
+
+	for (i = 0; i < 4; ++i) {
+		if (!tuxec_wait_for_obuf(ctx_data->control_port,
+					 MAX_STATUS_CHECKS*3))
+			return 1;
+
+		if (INB(ctx_data->data_port) == 0xf8)
+			return 0;
+	}
+	return 1;
+}
+
+static int tuxec_chunkwise_erase(tuxec_data_t *ctx_data,
+				 unsigned int start, unsigned int len)
+{
 	const unsigned int from_chunk = start/BYTES_PER_CHUNK;
 	const unsigned int end = start + len;
 
@@ -535,6 +568,18 @@ static int tuxec_erase(struct flashctx *flash,
 
 	internal_sleep(100000);
 	return ret;
+}
+
+static int tuxec_erase(struct flashctx *flash,
+		       unsigned int start, unsigned int len)
+{
+	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
+
+	if (ctx_data->support_ite5570) {
+		return tuxec_chunkwise_erase(ctx_data, start, len);
+	}
+
+	return tuxec_full_erase(ctx_data);
 }
 
 static struct opaque_master programmer_tuxec = {
@@ -562,8 +607,14 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 
 	p = extract_programmer_param("noaccheck");
 	if (p && strcmp(p, "yes") == 0) {
-		/* Assume it's always present. */
+		/* Just mark it as present. */
 		ctx_data->ac_adapter_plugged = true;
+	}
+	free(p);
+
+	p = extract_programmer_param("ite5570");
+	if (p && strcmp(p, "yes") == 0) {
+		ctx_data->support_ite5570 = true;
 	}
 	free(p);
 
@@ -648,8 +699,7 @@ int tuxec_init(void)
 
 	read_success = tuxec_read_byte(ctx_data, &write_type);
 	if (read_success && write_type != 0x00 && write_type != 0xff) {
-		/* At least ITE5570 seems to need this. */
-		ctx_data->special_write = true;
+		ctx_data->support_ite5570 = true;
 	}
 
 	if (!ctx_data->ac_adapter_plugged) {
