@@ -76,6 +76,9 @@ typedef struct
 	enum autoloadseekstate autoload_state;
 	enum autoloadaction autload_action;
 
+	uint8_t *first_kbyte;
+	bool special_write;
+
 	uint8_t control_port;
 	uint8_t data_port;
 	bool ac_adapter_plugged;
@@ -134,8 +137,13 @@ static int tuxec_shutdown(void *data)
 {
 	tuxec_data_t *ctx_data = (tuxec_data_t *)data;
 
+	/* In case we allocated, but didn't use the stash. */
+	if (ctx_data->first_kbyte) {
+		free(ctx_data->first_kbyte);
+	}
+
 	if (!tuxec_write_cmd(ctx_data, EC_CMD_FINISH))
-		msg_pdbg("%s(): failed to deinitialize controller\n", __func__);
+		msg_pdbg("%s(): failed to finalize controller\n", __func__);
 
 	free(data);
 	return 0;
@@ -309,24 +317,61 @@ static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 	return tuxec_write_byte(ctx_data, data);
 }
 
+/* The assumption is that writing is done sequentially */
 static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
-	unsigned int i;
+	const unsigned int param = ctx_data->special_write ? 0x00 : 0x02;
 
 	unsigned int offset = block*BYTES_PER_BLOCK;
+	unsigned int third_param = param;
+	unsigned int i;
 	bool ret = true;
 
+	/* Stash first kilobyte and write it after the last block. */
+	if (ctx_data->special_write && block == 0) {
+		ctx_data->first_kbyte = (uint8_t *)malloc(1024);
+		if (!ctx_data->first_kbyte) {
+			msg_perr("Failed to allocate memory for a stash.\n");
+			return false;
+		}
+
+		memcpy(ctx_data->first_kbyte, buf, 1024);
+
+		third_param = 0x04;
+	}
+
 	if (!tuxec_write_cmd(ctx_data, EC_CMD_WRITE_BLOCK) ||
-	    !tuxec_write_cmd(ctx_data, 0x02) ||
+	    !tuxec_write_cmd(ctx_data, param) ||
 	    !tuxec_write_cmd(ctx_data, block) ||
-	    !tuxec_write_cmd(ctx_data, 0x02) ||
-	    !tuxec_write_cmd(ctx_data, 0x02))
+	    !tuxec_write_cmd(ctx_data, third_param) ||
+	    !tuxec_write_cmd(ctx_data, param))
 		ret = false;
 
 	for (i = 0; i < BYTES_PER_BLOCK; ++i, ++offset) {
 		if (!tuxec_write_patched(ctx_data, offset, buf[i]))
 			ret = false;
+	}
+
+	/* If we're done, write the first kilobyte separately. */
+	if (ctx_data->special_write &&
+	    block == ctx_data->rom_size_in_blocks - 1) {
+		if (!ctx_data->first_kbyte) {
+			msg_perr("No first KB stash was found.\n");
+			return false;
+		}
+
+		if (!tuxec_write_cmd(ctx_data, 0x06))
+			ret = false;
+
+		for (i = 0; i < 1024; ++i) {
+			if (!tuxec_write_patched(ctx_data, i,
+						 ctx_data->first_kbyte[i]))
+				ret = false;
+		}
+
+		free(ctx_data->first_kbyte);
+		ctx_data->first_kbyte = NULL;
 	}
 
 	return ret;
@@ -602,9 +647,9 @@ int tuxec_init(void)
 	}
 
 	read_success = tuxec_read_byte(ctx_data, &write_type);
-	if (read_success && write_type != 0 && write_type != 0xff) {
-		msg_perr("ITE5570 is not supported.\n");
-		goto tuxec_init_exit;
+	if (read_success && write_type != 0x00 && write_type != 0xff) {
+		/* At least ITE5570 seems to need this. */
+		ctx_data->special_write = true;
 	}
 
 	if (!ctx_data->ac_adapter_plugged) {
