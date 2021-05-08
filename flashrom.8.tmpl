@@ -1384,6 +1384,18 @@ Syntax is
 .B "  flashrom \-p tuxec:noaccheck=yes"
 .sp
 An optional
+.B romsize
+parameter specifies size of EC ROM.  Syntax is
+.sp
+.B "  flashrom \-p tuxec:romsize=size"
+.sp
+where
+.B size
+can be:
+.BR 64K ", " 128K ", " 192K " or " 256K "."
+The default value is queried from EC.
+.sp
+An optional
 .B autload
 parameter specifies how to treat autoloading.
 Syntax is

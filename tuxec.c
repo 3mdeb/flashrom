@@ -634,7 +634,7 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 			ctx_data->data_port = 0x6a;
 		} else {
 			msg_pdbg("%s(): incorrect portpair param value: %s\n",
-				__func__, p);
+				 __func__, p);
 			ret = false;
 		}
 	}
@@ -655,6 +655,27 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 				__func__, p);
 			ret = false;
 		}
+	}
+	free(p);
+
+	p = extract_programmer_param("romsize");
+	if (p) {
+		if (!strcmp(p, "64K")) {
+			ctx_data->rom_size_in_blocks = 1;
+		} else if (!strcmp(p, "128K")) {
+			ctx_data->rom_size_in_blocks = 2;
+		} else if (!strcmp(p, "192K")) {
+			ctx_data->rom_size_in_blocks = 3;
+		} else if (!strcmp(p, "256K")) {
+			ctx_data->rom_size_in_blocks = 4;
+		} else {
+			msg_pdbg("%s(): incorrect romsize param value: %s\n",
+				__func__, p);
+			ret = false;
+		}
+
+		ctx_data->rom_size_in_kbytes =
+			ctx_data->rom_size_in_blocks*KBYTES_PER_BLOCK;
 	}
 	free(p);
 
