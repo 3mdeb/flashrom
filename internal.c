@@ -209,7 +209,7 @@ int internal_init(void)
 	const char *cb_model = NULL;
 #endif
 #if CONFIG_TUXEC
-    bool unlock_me_only = false;
+	bool unlock_me_only = false;
 #endif
 	char *arg;
 
@@ -273,7 +273,7 @@ int internal_init(void)
 #if CONFIG_TUXEC
 	arg = extract_programmer_param("unlockmeonly");
 	if (arg && !strcmp(arg, "yes")) {
-        unlock_me_only = true;
+		unlock_me_only = true;
 	} else if (arg && !strlen(arg)) {
 		msg_perr("Missing argument for unlockmeonly.\n");
 		free(arg);
@@ -282,7 +282,7 @@ int internal_init(void)
 		msg_perr("Unknown argument for unlockmeonly: %s.\n", arg);
 		free(arg);
 		return 1;
-    }
+	}
 	free(arg);
 #endif
 
@@ -292,17 +292,17 @@ int internal_init(void)
 	}
 
 #if CONFIG_TUXEC
-    /* TODO: limit this to a specific board which it targets. */
-    if (unlock_me_only) {
+	/* TODO: limit this to a specific board which it targets. */
+	if (unlock_me_only) {
 		if (unlock_me()) {
-            msg_pwarn("Successfully unlocked ME region, reboot for it to take "
-                      "effect\n");
-            ret = 0;
-        } else {
-            ret = 1;
-        }
+			msg_pwarn("Successfully unlocked ME region, reboot "
+				  "for it to take effect\n");
+			ret = 0;
+		} else {
+			ret = 1;
+		}
 		goto internal_init_exit;
-    }
+	}
 #endif
 
 	/* Default to Parallel/LPC/FWH flash devices. If a known host controller
