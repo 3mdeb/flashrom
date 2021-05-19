@@ -22,6 +22,10 @@
 #include "programmer.h"
 #include "hwaccess.h"
 
+#if CONFIG_TUXEC
+#include "ec.h"
+#endif
+
 int is_laptop = 0;
 int laptop_ok = 0;
 
@@ -122,18 +126,18 @@ static bool unlock_me(void)
 {
 	uint8_t data;
 
-	if (!tuxec_wait_for_ibuf(0x66)) {
+	if (!ec_wait_for_ibuf(EC_CONTROL)) {
 		msg_perr("Failed to start ME unlocking.\n");
 		return false;
 	}
-	OUTB(0xc2, 0x66);
+	OUTB(0xc2, EC_CONTROL);
 
-	if (!tuxec_read_reg(0xda, &data)) {
+	if (!ec_read_reg(0xda, &data)) {
 		msg_perr("Failed to read ME state register\n");
 		return false;
 	}
 
-	if (!tuxec_write_reg(0xda, data | 0x08)) {
+	if (!ec_write_reg(0xda, data | 0x08)) {
 		msg_perr("Failed to update ME state register\n");
 		return false;
 	}

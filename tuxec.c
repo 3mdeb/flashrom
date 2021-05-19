@@ -25,30 +25,21 @@
 #include <string.h>
 
 #include "chipdrivers.h"
+#include "ec.h"
 #include "hwaccess.h"
 #include "programmer.h"
-
-#define EC_DATA             0x62
-#define EC_CONTROL          0x66
 
 #define EC_CMD_ERASE_ALL    0x01
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
 #define EC_CMD_ERASE_KBYTE  0x05
-#define EC_CMD_READ_REG     0x80
-#define EC_CMD_WRITE_REG    0x81
 #define EC_CMD_FINISH       0xfe
-
-#define EC_STS_IBF          (1 << 1)
-#define EC_STS_OBF          (1 << 0)
 
 #define BYTES_PER_BLOCK     64*1024
 #define BYTES_PER_CHUNK     256
 #define KBYTES_PER_BLOCK    64
 #define CHUNKS_PER_KBYTE    4
 #define CHUNKS_PER_BLOCK    256
-
-#define MAX_STATUS_CHECKS   100000
 
 enum autoloadaction {
 	AUTOLOAD_NO_ACTION,
@@ -85,54 +76,19 @@ typedef struct
 	bool ac_adapter_plugged;
 } tuxec_data_t;
 
-bool tuxec_wait_for_ibuf(uint8_t status_port)
-{
-	unsigned int i;
-
-	for (i = 0; (INB(status_port) & EC_STS_IBF) != 0; ++i) {
-		if (i == MAX_STATUS_CHECKS) {
-			msg_pdbg("%s(): input buf is not empty\n", __func__);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static bool tuxec_wait_for_obuf(uint8_t status_port, unsigned int max_checks)
-{
-	unsigned int i;
-
-	for (i = 0; (INB(status_port) & EC_STS_OBF) == 0; ++i) {
-		if (i == max_checks) {
-			msg_pdbg("%s(): output buf is empty\n", __func__);
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static bool tuxec_write_cmd(tuxec_data_t *ctx_data, uint8_t cmd)
 {
-	const bool success = tuxec_wait_for_ibuf(ctx_data->control_port);
-	OUTB(cmd, ctx_data->control_port);
-	return success;
+	return ec_write_cmd(ctx_data->control_port, cmd);
 }
 
 static bool tuxec_read_byte(tuxec_data_t *ctx_data, uint8_t *data)
 {
-	const bool success = tuxec_wait_for_obuf(ctx_data->control_port,
-						 MAX_STATUS_CHECKS);
-	*data = INB(ctx_data->data_port);
-	return success;
+	return ec_read_byte(ctx_data->control_port, ctx_data->data_port, data);
 }
 
 static bool tuxec_write_byte(tuxec_data_t *ctx_data, uint8_t data)
 {
-	const bool success = tuxec_wait_for_ibuf(ctx_data->control_port);
-	OUTB(data, ctx_data->data_port);
-	return success;
+	return ec_write_byte(ctx_data->control_port, ctx_data->data_port, data);
 }
 
 static int tuxec_shutdown(void *data)
@@ -151,40 +107,6 @@ static int tuxec_shutdown(void *data)
 	return 0;
 }
 
-bool tuxec_read_reg(uint8_t address, uint8_t *data)
-{
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(EC_CMD_READ_REG, EC_CONTROL);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(address, EC_DATA);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	*data = INB(EC_DATA);
-
-	return true;
-}
-
-bool tuxec_write_reg(uint8_t address, uint8_t data)
-{
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(EC_CMD_WRITE_REG, EC_CONTROL);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(address, EC_DATA);
-
-	if (!tuxec_wait_for_ibuf(EC_CONTROL))
-		return false;
-	OUTB(data, EC_DATA);
-
-	return true;
-}
-
 static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	uint8_t reg_value;
@@ -192,7 +114,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
 
-	if (!tuxec_read_reg(0xf9, &reg_value)) {
+	if (!ec_read_reg(0xf9, &reg_value)) {
 		msg_perr("Failed to query flash ROM size.\n");
 		return false;
 	}
@@ -208,7 +130,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		break;
 	}
 
-	if (!tuxec_read_reg(0x10, &reg_value)) {
+	if (!ec_read_reg(0x10, &reg_value)) {
 		msg_perr("Failed to query AC adapter state.\n");
 		return false;
 	}
@@ -529,8 +451,7 @@ static int tuxec_full_erase(tuxec_data_t *ctx_data)
 	}
 
 	for (i = 0; i < 4; ++i) {
-		if (!tuxec_wait_for_obuf(ctx_data->control_port,
-					 MAX_STATUS_CHECKS*3))
+		if (!ec_wait_for_obuf(ctx_data->control_port, EC_MAX_STATUS_CHECKS*3))
 			return 1;
 
 		if (INB(ctx_data->data_port) == 0xf8)
@@ -689,10 +610,10 @@ int tuxec_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
-	if (!tuxec_write_reg(0xf9, 0x20) ||
-	    !tuxec_write_reg(0xfa, 0x02) ||
-	    !tuxec_write_reg(0xfb, 0x00) ||
-	    !tuxec_write_reg(0xf8, 0xb1)) {
+	if (!ec_write_reg(0xf9, 0x20) ||
+	    !ec_write_reg(0xfa, 0x02) ||
+	    !ec_write_reg(0xfb, 0x00) ||
+	    !ec_write_reg(0xf8, 0xb1)) {
 		msg_perr("Unable to initialize controller.\n");
 		return 1;
 	}
