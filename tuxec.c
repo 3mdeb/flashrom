@@ -325,7 +325,6 @@ static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 	return tuxec_write_byte(ctx_data, data);
 }
 
-/* The assumption is that writing is done sequentially */
 static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
@@ -385,7 +384,6 @@ static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 	return ret;
 }
 
-/* The assumption is that writing is done sequentially */
 static void tuxec_update_autoload_state(tuxec_data_t *ctx_data,
 					const uint8_t *buf,
 					unsigned int start, unsigned int len)
