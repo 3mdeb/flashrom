@@ -610,6 +610,9 @@ int tuxec_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
+	if (rget_io_perms())
+		return 1;
+
 	if (!ec_write_reg(0xf9, 0x20) ||
 	    !ec_write_reg(0xfa, 0x02) ||
 	    !ec_write_reg(0xfb, 0x00) ||
