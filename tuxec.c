@@ -627,15 +627,15 @@ int tuxec_init(void)
 	}
 
 	if (!tuxec_init_ctx(ctx_data))
-		goto tuxec_init_exit;
+		return 1;
 
 	if (!tuxec_check_params(ctx_data))
-		goto tuxec_init_exit;
+		return 1;
 
 	if (!tuxec_write_cmd(ctx_data, 0xde) ||
 		!tuxec_write_cmd(ctx_data, 0xdc)) {
 		msg_perr("%s(): failed to prepare controller\n", __func__);
-		goto tuxec_init_exit;
+		return 1;
 	}
 
 	if (!tuxec_write_cmd(ctx_data, 0xf0)) {
@@ -658,9 +658,9 @@ int tuxec_init(void)
 	if (register_shutdown(tuxec_shutdown, ctx_data))
 		goto tuxec_init_exit;
 	if (register_opaque_master(&programmer_tuxec))
-		goto tuxec_init_exit;
-	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
+		return 1;
 
+	msg_pdbg("%s(): successfully initialized tuxec\n", __func__);
 	return 0;
 
 tuxec_init_exit:
