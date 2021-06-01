@@ -33,7 +33,6 @@
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
 #define EC_CMD_ERASE_KBYTE  0x05
-#define EC_CMD_FINISH       0xfe
 
 #define BYTES_PER_BLOCK     64*1024
 #define BYTES_PER_CHUNK     256
@@ -100,7 +99,7 @@ static int tuxec_shutdown(void *data)
 		free(ctx_data->first_kbyte);
 	}
 
-	if (!tuxec_write_cmd(ctx_data, EC_CMD_FINISH))
+	if (!tuxec_write_cmd(ctx_data, 0xfe))
 		msg_pdbg("%s(): failed to finalize controller\n", __func__);
 
 	free(data);
