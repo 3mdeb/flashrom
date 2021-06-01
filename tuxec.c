@@ -627,20 +627,20 @@ int tuxec_init(void)
 	}
 
 	if (!tuxec_init_ctx(ctx_data))
-		return 1;
+		goto tuxec_init_exit;
 
 	if (!tuxec_check_params(ctx_data))
-		return 1;
+		goto tuxec_init_exit;
 
 	if (!tuxec_write_cmd(ctx_data, 0xde) ||
 		!tuxec_write_cmd(ctx_data, 0xdc)) {
 		msg_perr("%s(): failed to prepare controller\n", __func__);
-		return 1;
+		goto tuxec_init_exit;
 	}
 
 	if (!tuxec_write_cmd(ctx_data, 0xf0)) {
 		msg_perr("Failed to write identification commands.\n");
-		goto tuxec_init_exit;
+		goto tuxec_init_exit_shutdown;
 	}
 
 	read_success = tuxec_read_byte(ctx_data, &write_type);
@@ -650,13 +650,13 @@ int tuxec_init(void)
 
 	if (!ctx_data->ac_adapter_plugged) {
 		msg_perr("AC adapter is not plugged.\n");
-		goto tuxec_init_exit;
+		goto tuxec_init_exit_shutdown;
 	}
 
 	programmer_tuxec.data = ctx_data;
 
 	if (register_shutdown(tuxec_shutdown, ctx_data))
-		goto tuxec_init_exit;
+		goto tuxec_init_exit_shutdown;
 	if (register_opaque_master(&programmer_tuxec))
 		return 1;
 
@@ -664,6 +664,10 @@ int tuxec_init(void)
 	return 0;
 
 tuxec_init_exit:
+	tuxec_shutdown(ctx_data);
+	return 1;
+
+tuxec_init_exit_shutdown:
 	tuxec_shutdown(ctx_data);
 	return 1;
 }
