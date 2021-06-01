@@ -634,8 +634,12 @@ int tuxec_init(void)
 		goto tuxec_init_exit;
 
 	if (!tuxec_write_cmd(ctx_data, 0xde) ||
-	    !tuxec_write_cmd(ctx_data, 0xdc) ||
-	    !tuxec_write_cmd(ctx_data, 0xf0)) {
+		!tuxec_write_cmd(ctx_data, 0xdc)) {
+		msg_perr("%s(): failed to prepare controller\n", __func__);
+		goto tuxec_init_exit;
+	}
+
+	if (!tuxec_write_cmd(ctx_data, 0xf0)) {
 		msg_perr("Failed to write identification commands.\n");
 		goto tuxec_init_exit;
 	}
