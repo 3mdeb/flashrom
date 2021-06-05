@@ -130,7 +130,7 @@ static bool unlock_me(void)
 		msg_perr("Failed to start ME unlocking.\n");
 		return false;
 	}
-	OUTB(0xc2, EC_CONTROL);
+	ec_write_cmd(EC_CONTROL, 0xc2);
 
 	if (!ec_read_reg(0xda, &data)) {
 		msg_perr("Failed to read ME state register\n");
