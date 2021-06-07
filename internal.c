@@ -298,8 +298,9 @@ int internal_init(void)
 	/* TODO: limit this to a specific board which it targets. */
 	if (unlock_me_only) {
 		if (unlock_me()) {
-			msg_pwarn("Successfully unlocked ME region, reboot "
-				  "for it to take effect\n");
+			msg_pwarn("Successfully unlocked ME region, power off "
+				  "and power on (rather than reboot) for it to "
+				  "take effect\n");
 			ret = 0;
 		} else {
 			ret = 1;
