@@ -126,11 +126,10 @@ static bool unlock_me(void)
 {
 	uint8_t data;
 
-	if (!ec_wait_for_ibuf(EC_CONTROL)) {
+	if (!ec_write_cmd(EC_CONTROL, 0xc2)) {
 		msg_perr("Failed to start ME unlocking.\n");
 		return false;
 	}
-	ec_write_cmd(EC_CONTROL, 0xc2);
 
 	if (!ec_read_reg(0xda, &data)) {
 		msg_perr("Failed to read ME state register\n");
