@@ -61,21 +61,27 @@ bool ec_wait_for_obuf(uint8_t control_port, unsigned int max_checks)
 bool ec_write_cmd(uint8_t control_port, uint8_t cmd)
 {
 	const bool success = ec_wait_for_ibuf(control_port);
-	OUTB(cmd, control_port);
+	if (success) {
+		OUTB(cmd, control_port);
+	}
 	return success;
 }
 
 bool ec_read_byte(uint8_t control_port, uint8_t data_port, uint8_t *data)
 {
 	const bool success = ec_wait_for_obuf(control_port, EC_MAX_STATUS_CHECKS);
-	*data = INB(data_port);
+	if (success) {
+		*data = INB(data_port);
+	}
 	return success;
 }
 
 bool ec_write_byte(uint8_t control_port, uint8_t data_port, uint8_t data)
 {
 	const bool success = ec_wait_for_ibuf(control_port);
-	OUTB(data, data_port);
+	if (success) {
+		OUTB(data, data_port);
+	}
 	return success;
 }
 
