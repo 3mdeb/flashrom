@@ -130,6 +130,10 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	}
 
 	if (!ec_read_reg(0x10, &reg_value)) {
+		msg_perr("Failed to query first byte of state register.\n");
+		return false;
+	}
+	if (!ec_read_reg(0x10, &reg_value)) {
 		msg_perr("Failed to query AC adapter state.\n");
 		return false;
 	}
