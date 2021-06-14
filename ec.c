@@ -60,6 +60,7 @@ bool ec_wait_for_obuf(uint8_t control_port, unsigned int max_checks)
 
 bool ec_write_cmd(uint8_t control_port, uint8_t cmd)
 {
+	msg_pdbg("%s(): ctrl_port, cmd: 0x%x, 0x%x\n", __func__, control_port, cmd);
 	const bool success = ec_wait_for_ibuf(control_port);
 	if (success) {
 		OUTB(cmd, control_port);
@@ -87,6 +88,7 @@ bool ec_write_byte(uint8_t control_port, uint8_t data_port, uint8_t data)
 
 bool ec_read_reg(uint8_t address, uint8_t *data)
 {
+	msg_pdbg("%s(): addr, data: 0x%x, 0x%x\n", __func__, address, *data);
 	if (!ec_wait_for_ibuf(EC_CONTROL))
 		return false;
 	OUTB(EC_CMD_READ_REG, EC_CONTROL);
@@ -104,6 +106,7 @@ bool ec_read_reg(uint8_t address, uint8_t *data)
 
 bool ec_write_reg(uint8_t address, uint8_t data)
 {
+	msg_pdbg("%s(): addr, data: 0x%x, 0x%x\n", __func__, address, data);
 	if (!ec_wait_for_ibuf(EC_CONTROL))
 		return false;
 	OUTB(EC_CMD_WRITE_REG, EC_CONTROL);

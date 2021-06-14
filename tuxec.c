@@ -92,6 +92,7 @@ static bool tuxec_write_byte(tuxec_data_t *ctx_data, uint8_t data)
 
 static int tuxec_shutdown(void *data)
 {
+	msg_pdbg("%s \n", __func__);
 	tuxec_data_t *ctx_data = (tuxec_data_t *)data;
 
 	/* In case we allocated, but didn't use the stash. */
@@ -108,6 +109,7 @@ static int tuxec_shutdown(void *data)
 
 static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
+	msg_pdbg("%s \n", __func__);
 	uint8_t reg_value;
 
 	ctx_data->control_port = EC_CONTROL;
@@ -147,6 +149,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 
 static int tuxec_probe(struct flashctx *flash)
 {
+	msg_pdbg("%s \n", __func__);
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
 	flash->chip->tested = TEST_OK_PREW;
@@ -169,6 +172,7 @@ static int tuxec_probe(struct flashctx *flash)
 static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 		      unsigned int start, unsigned int len)
 {
+	msg_pdbg("%s \n", __func__);
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
 	const unsigned int from_byte = start - start%BYTES_PER_BLOCK;
@@ -196,6 +200,7 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 		}
 
 		*buf = rom_byte;
+		msg_pdbg("rom byte: 0x%x\n", rom_byte);
 
 		++buf;
 		--len;
@@ -253,6 +258,7 @@ static bool tuxec_write_patched(tuxec_data_t *ctx_data, unsigned int offset,
 static bool tuxec_write_block(tuxec_data_t *ctx_data, const uint8_t *buf,
 			      unsigned int block)
 {
+	msg_pdbg("%s \n", __func__);
 	const unsigned int param = ctx_data->support_ite5570 ? 0x00 : 0x02;
 
 	unsigned int offset = block*BYTES_PER_BLOCK;
@@ -313,6 +319,7 @@ static void tuxec_update_autoload_state(tuxec_data_t *ctx_data,
 					const uint8_t *buf,
 					unsigned int start, unsigned int len)
 {
+	msg_pdbg("%s \n", __func__);
 	unsigned int i;
 
 	unsigned int offset = start;
@@ -370,6 +377,7 @@ static void tuxec_update_autoload_state(tuxec_data_t *ctx_data,
 static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 				unsigned int start, unsigned int len)
 {
+	msg_pdbg("%s \n", __func__);
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
 	const unsigned int from_block = start/BYTES_PER_BLOCK;
@@ -439,6 +447,7 @@ static int tuxec_write(struct flashctx *flash, const uint8_t *buf,
 
 static int tuxec_full_erase(tuxec_data_t *ctx_data)
 {
+	msg_pdbg("%s \n", __func__);
 	unsigned int i;
 
 	if (!tuxec_write_cmd(ctx_data, EC_CMD_ERASE_ALL) ||
@@ -466,6 +475,7 @@ static int tuxec_full_erase(tuxec_data_t *ctx_data)
 static int tuxec_chunkwise_erase(tuxec_data_t *ctx_data,
 				 unsigned int start, unsigned int len)
 {
+	msg_pdbg("%s \n", __func__);
 	const unsigned int from_chunk = start/BYTES_PER_CHUNK;
 	const unsigned int end = start + len;
 
@@ -495,6 +505,7 @@ static int tuxec_chunkwise_erase(tuxec_data_t *ctx_data,
 static int tuxec_erase(struct flashctx *flash,
 		       unsigned int start, unsigned int len)
 {
+	msg_pdbg("%s \n", __func__);
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
 	if (ctx_data->support_ite5570) {
@@ -515,6 +526,7 @@ static struct opaque_master programmer_tuxec = {
 
 static bool tuxec_check_params(tuxec_data_t *ctx_data)
 {
+	msg_pdbg("%s \n", __func__);
 	char *p;
 
 	bool ret = true;
@@ -606,6 +618,7 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 
 int tuxec_init(void)
 {
+	msg_pdbg("%s \n", __func__);
 	bool read_success;
 	uint8_t write_type;
 
