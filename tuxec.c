@@ -132,7 +132,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		ctx_data->rom_size_in_blocks = 4;
 		break;
 	default:
-		ctx_data->rom_size_in_blocks = 1;
+		ctx_data->rom_size_in_blocks = 2;
 		break;
 	}
 
