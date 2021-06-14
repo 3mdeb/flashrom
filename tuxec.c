@@ -40,6 +40,8 @@
 #define CHUNKS_PER_KBYTE    4
 #define CHUNKS_PER_BLOCK    256
 
+#define INFO_BUFFER_SIZE    16
+
 enum autoloadaction {
 	AUTOLOAD_NO_ACTION,
 	AUTOLOAD_DISABLE,
@@ -111,6 +113,9 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	msg_pdbg("%s \n", __func__);
 	uint8_t reg_value;
+	uint8_t rom_data;
+	uint8_t ec_project[INFO_BUFFER_SIZE];
+	// uint8_t ec_version[INFO_BUFFER_SIZE];
 
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
@@ -143,6 +148,39 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 
 	ctx_data->rom_size_in_kbytes =
 		ctx_data->rom_size_in_blocks*KBYTES_PER_BLOCK;
+
+	// Get EC Project
+	if (!tuxec_read_byte(ctx_data, &rom_data)) {
+		msg_perr("Failed to read...\n");
+		return false;
+	}
+	msg_pdbg("discarded_rom_data: 0x%x\n", rom_data);
+
+	if (!tuxec_write_cmd(ctx_data, 0x92)) {
+		msg_perr("Failed to write cmd...\n");
+		return false;
+	}
+
+	uint8_t i;
+
+	for (i = 0; i < INFO_BUFFER_SIZE -1; ++i) {
+		if (!tuxec_read_byte(ctx_data, &ec_project[i])) {
+			msg_perr("Failed to read...\n");
+			return false;
+		}
+		if (ec_project[i] == '$') {
+			++i;
+			break;
+		}
+	}
+	ec_project[i] = '\0';
+
+	msg_pdbg("EC Project: ");
+
+	for (i = 0; i < INFO_BUFFER_SIZE && ec_project[i] != '$'; ++i) {
+		msg_pdbg("%c", ec_project[i]);
+	}
+	msg_pdbg("\n");
 
 	return true;
 }
