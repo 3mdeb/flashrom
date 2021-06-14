@@ -136,6 +136,10 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		break;
 	}
 
+
+	INB(EC_CONTROL);
+	INB(EC_DATA);
+
 	if (!ec_read_reg(0x10, &reg_value)) {
 		msg_perr("Failed to query first byte of state register.\n");
 		return false;
