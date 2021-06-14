@@ -113,7 +113,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	msg_pdbg("%s \n", __func__);
 	uint8_t reg_value;
-	uint8_t rom_data;
+	// uint8_t rom_data;
 	uint8_t ec_project[INFO_BUFFER_SIZE];
 	// uint8_t ec_version[INFO_BUFFER_SIZE];
 
@@ -136,7 +136,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		break;
 	}
 
-
+	// TODO: This is in the EFI code. Check if it is needed. Likely not.
 	INB(EC_CONTROL);
 	INB(EC_DATA);
 
@@ -153,12 +153,17 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->rom_size_in_kbytes =
 		ctx_data->rom_size_in_blocks*KBYTES_PER_BLOCK;
 
-	// Get EC Project
-	if (!tuxec_read_byte(ctx_data, &rom_data)) {
-		msg_perr("Failed to read...\n");
-		return false;
-	}
-	msg_pdbg("discarded_rom_data: 0x%x\n", rom_data);
+	// Get EC Project - it looks like it is crucial to read EC project
+	// prior performing any further actions like reading or writing to
+	// flash. Not sure if we need to read the EC Version as well.
+	//
+	// this read always fails, but it was present in the EFI binary; we
+	// should drop it
+	// if (!tuxec_read_byte(ctx_data, &rom_data)) {
+	// 	msg_perr("Failed to read...\n");
+	// 	return false;
+	// }
+	// msg_pdbg("discarded_rom_data: 0x%x\n", rom_data);
 
 	if (!tuxec_write_cmd(ctx_data, 0x92)) {
 		msg_perr("Failed to write cmd...\n");
