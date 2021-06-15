@@ -709,6 +709,29 @@ static bool tuxec_check_params(tuxec_data_t *ctx_data)
 	return ret;
 }
 
+static void tuxec_read_flash_id(tuxec_data_t *ctx_data)
+{
+
+	uint8_t rom_data;
+	unsigned int id_length, i;
+
+	msg_pdbg("%s(): Get Flash Part ID\n", __func__);
+	tuxec_write_cmd (ctx_data, EC_CMD_GET_FLASH_ID);
+
+	id_length = 3;
+	if (ctx_data->rom_size_in_blocks == 3 ||
+	    ctx_data->rom_size_in_blocks == 4)
+		id_length = 4;
+
+	msg_pdbg("%s(): Flash Part ID: ", __func__);
+	for (i = 0; i < id_length; i++) {
+		tuxec_read_byte (ctx_data, &rom_data);
+		msg_pdbg("0x%02x ", rom_data);
+	}
+
+	msg_pdbg("\n");
+}
+
 int tuxec_init(void)
 {
 	msg_pdbg("%s \n", __func__);
@@ -757,6 +780,8 @@ int tuxec_init(void)
 	if (read_success && write_type != 0x00 && write_type != 0xff) {
 		ctx_data->support_ite5570 = true;
 	}
+
+	tuxec_read_flash_id(ctx_data);
 
 	if (!ctx_data->ac_adapter_plugged) {
 		msg_perr("AC adapter is not plugged.\n");
