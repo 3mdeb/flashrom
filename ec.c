@@ -36,7 +36,6 @@ bool ec_wait_for_ibuf(uint8_t control_port)
 
 	for (i = 0; (INB(control_port) & EC_STS_IBF) != 0; ++i) {
 		if (i == EC_MAX_STATUS_CHECKS) {
-			msg_pdbg("%s(): input buf is not empty\n", __func__);
 			return false;
 		}
 	}
@@ -50,7 +49,6 @@ bool ec_wait_for_obuf(uint8_t control_port, unsigned int max_checks)
 
 	for (i = 0; (INB(control_port) & EC_STS_OBF) == 0; ++i) {
 		if (i == max_checks) {
-			msg_pdbg("%s(): output buf is empty\n", __func__);
 			return false;
 		}
 	}

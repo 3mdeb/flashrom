@@ -922,6 +922,7 @@ out_free:
 static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsigned int len,
                                  unsigned int gran, const uint8_t erased_value)
 {
+	msg_pdbg("%s()\n", __func__);
 	unsigned int i, j, limit;
 	for (j = 0; j < len / gran; j++) {
 		limit = min (gran, len - j * gran);
@@ -955,6 +956,8 @@ int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
 {
 	int result = 0;
 	unsigned int i;
+
+	msg_pdbg("%s() gran %d\n", __func__, gran);
 
 	switch (gran) {
 	case write_gran_1bit:
@@ -991,6 +994,9 @@ int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
 		break;
 	case write_gran_1056bytes:
 		result = need_erase_gran_bytes(have, want, len, 1056, erased_value);
+		break;
+	case write_gran_64kbytes:
+		result = need_erase_gran_bytes(have, want, len, 1024 * 64, erased_value);
 		break;
 	case write_gran_1byte_implicit_erase:
 		/* Do not erase, handle content changes from anything->0xff by writing 0xff. */
@@ -1060,6 +1066,9 @@ static unsigned int get_next_write(const uint8_t *have, const uint8_t *want, uns
 		break;
 	case write_gran_1056bytes:
 		stride = 1056;
+		break;
+	case write_gran_64kbytes:
+		stride = 64 * 1024;
 		break;
 	default:
 		msg_cerr("%s: Unsupported granularity! Please report a bug at "
@@ -1798,6 +1807,7 @@ static int erase_block(struct flashctx *const flashctx,
 	uint8_t *backup_contents = NULL, *erased_contents = NULL;
 	int ret = 2;
 
+	msg_pdbg("%s()\n", __func__);
 	/*
 	 * If the region is not erase-block aligned, merge current flash con-
 	 * tents into a new buffer `backup_contents`.
@@ -1838,6 +1848,7 @@ static int erase_block(struct flashctx *const flashctx,
 	ret = 1;
 	all_skipped = false;
 
+	msg_pdbg("%s()erasing...\n", __func__);
 	msg_cdbg("E");
 	if (erasefn(flashctx, info->erase_start, erase_len))
 		goto _free_ret;
@@ -1883,6 +1894,7 @@ _free_ret:
 static int erase_by_layout(struct flashctx *const flashctx)
 {
 	struct walk_info info = { 0 };
+	msg_pdbg("%s()\n", __func__);
 	return walk_by_layout(flashctx, &info, &erase_block);
 }
 
@@ -1894,7 +1906,7 @@ static int read_erase_write_block(struct flashctx *const flashctx,
 				      info->erase_end > info->region_end;
 	const uint8_t *newcontents = NULL;
 	int ret = 2;
-
+	msg_pdbg("%s()\n", __func__);
 	/*
 	 * If the region is not erase-block aligned, merge current flash con-
 	 * tents into `info->curcontents` and a new buffer `newc`. The former
@@ -1945,11 +1957,14 @@ static int read_erase_write_block(struct flashctx *const flashctx,
 	const uint8_t erased_value = ERASED_VALUE(flashctx);
 	if (!(flashctx->chip->feature_bits & FEATURE_NO_ERASE) &&
 			need_erase(curcontents, newcontents, erase_len, flashctx->chip->gran, erased_value)) {
+		msg_pdbg("%s() erasing block \n", __func__);
 		if (erase_block(flashctx, info, erasefn))
 			goto _free_ret;
 		/* Erase was successful. Adjust curcontents. */
 		memset(curcontents, erased_value, erase_len);
 		skipped = false;
+	} else {
+		msg_pdbg("%s() erase not needed\n", __func__);
 	}
 
 	unsigned int starthere = 0, lenhere = 0, writecount = 0;
@@ -1999,6 +2014,7 @@ static int write_by_layout(struct flashctx *const flashctx,
 	struct walk_info info;
 	info.curcontents = curcontents;
 	info.newcontents = newcontents;
+	msg_pdbg("%s()\n", __func__);
 	return walk_by_layout(flashctx, &info, read_erase_write_block);
 }
 
