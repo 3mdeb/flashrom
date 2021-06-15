@@ -32,9 +32,12 @@
 #define EC_CMD_ERASE_ALL    0x01
 #define EC_CMD_WRITE_BLOCK  0x02
 #define EC_CMD_READ_BLOCK   0x03
+#define EC_CMD_GET_FLASH_ID 0x04
 #define EC_CMD_ERASE_KBYTE  0x05
+#define EC_CMD_READ_PRJ     0x92
+#define EC_CMD_READ_VER     0x93
 
-#define BYTES_PER_BLOCK     64*1024
+#define BYTES_PER_BLOCK     (64 * 1024)
 #define BYTES_PER_CHUNK     256
 #define KBYTES_PER_BLOCK    64
 #define CHUNKS_PER_KBYTE    4
