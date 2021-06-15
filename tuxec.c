@@ -239,40 +239,67 @@ static int tuxec_read(struct flashctx *flash, uint8_t *buf,
 		      unsigned int start, unsigned int len)
 {
 	msg_pdbg("%s \n", __func__);
+	unsigned int offset, block_index, block_start, block_end;
+	uint8_t rom_byte;
+	int ret = 0;
 	tuxec_data_t *ctx_data = (tuxec_data_t *)flash->mst->opaque.data;
 
-	const unsigned int from_byte = start - start%BYTES_PER_BLOCK;
-	const unsigned int to_byte = ctx_data->rom_size_in_kbytes*1024;
 
-	unsigned int offset;
-	uint8_t rom_byte;
+	msg_pdbg("(%s): read flash @ 0x%x len %x\n", __func__, start, len);
+	/*
+	 * This EC can read only a whole block. So read whole block and return
+	 * only the data that has been requested with start and len parameters.
+	 */
 
-	int ret = 0;
+	if (start > BYTES_PER_BLOCK)
+		block_start = start / BYTES_PER_BLOCK;
+	else
+		block_start = 0;
 
-	for (offset = from_byte; offset < to_byte; ++offset) {
-		if (offset%BYTES_PER_BLOCK == 0) {
-			if (!tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK) ||
-			    !tuxec_write_cmd(ctx_data, offset/BYTES_PER_BLOCK))
-				ret = 1;
+	if ((start + len) > BYTES_PER_BLOCK) {
+		if ((start + len) % BYTES_PER_BLOCK == 0) {
+			block_end = (start + len) / BYTES_PER_BLOCK;
+		} else {
+			block_end = ((start + len) / BYTES_PER_BLOCK) + 1;
 		}
+	} else {
+		block_end = 1;
+	}
 
-		if (!tuxec_read_byte(ctx_data, &rom_byte)) {
-			rom_byte = 0;
-			ret = 1;
+	if (block_end > ctx_data->rom_size_in_blocks){
+		return 1;
+	}
+
+	for (block_index = block_start;
+	     block_index < ctx_data->rom_size_in_blocks; block_index++) {
+		if (!tuxec_write_cmd(ctx_data, EC_CMD_READ_BLOCK) ||
+		    !tuxec_write_cmd(ctx_data, block_index)) {
+			msg_perr("Failed to select block to read %d\n",
+				 block_index);
+			return 1;
 		}
+		for (offset = 0; offset < BYTES_PER_BLOCK; ++offset) {
 
-		if (offset < start) {
-			continue;
-		}
+			if (!tuxec_read_byte(ctx_data, &rom_byte)) {
+				msg_perr("Flash read failed @ 0x%x\n", offset);
+				return 1;
+			}
 
-		*buf = rom_byte;
-		msg_pdbg("rom byte: 0x%x\n", rom_byte);
+			if ((block_index * BYTES_PER_BLOCK) + offset < start) {
+				continue;
+			}
 
-		++buf;
-		--len;
+			*buf = rom_byte;
+			msg_pdbg("rom byte (offset %x): 0x%x\n",
+				 (block_index * BYTES_PER_BLOCK) + offset,
+				 rom_byte);
 
-		if (len == 0) {
-			break;
+			++buf;
+			--len;
+
+			if (len == 0) {
+				break;
+			}
 		}
 	}
 
