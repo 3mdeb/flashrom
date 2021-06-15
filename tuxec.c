@@ -112,13 +112,64 @@ static int tuxec_shutdown(void *data)
 	return 0;
 }
 
+static void tuxec_read_project(tuxec_data_t *ctx_data)
+{
+	uint8_t ec_project[INFO_BUFFER_SIZE];
+	uint8_t i;
+
+	// dummy read
+	tuxec_read_byte(ctx_data, NULL);
+
+	if (!tuxec_write_cmd(ctx_data, EC_CMD_READ_PRJ)) {
+		msg_perr("Failed to write cmd...\n");
+		return;
+	}
+
+	for (i = 0; i < INFO_BUFFER_SIZE -1; ++i) {
+		if (!tuxec_read_byte(ctx_data, &ec_project[i])) {
+			msg_perr("Failed to read EC project...\n");
+			return;
+		}
+		if (ec_project[i] == '$') {
+			break;
+		}
+	}
+	ec_project[i] = '\0';
+
+	msg_cinfo("Mainboard EC Project: %s\n", (char *)ec_project);
+}
+
+static void tuxec_read_version(tuxec_data_t *ctx_data)
+{
+	uint8_t ec_version[INFO_BUFFER_SIZE];
+	uint8_t i;
+
+	// dummy read
+	tuxec_read_byte(ctx_data, NULL);
+
+	if (!tuxec_write_cmd(ctx_data, EC_CMD_READ_VER)) {
+		msg_perr("Failed to write cmd...\n");
+		return;
+	}
+
+	for (i = 0; i < INFO_BUFFER_SIZE -1; ++i) {
+		if (!tuxec_read_byte(ctx_data, &ec_version[i])) {
+			msg_perr("Failed to read EC version...\n");
+			return;
+		}
+		if (ec_version[i] == '$') {
+			break;
+		}
+	}
+	ec_version[i] = '\0';
+
+	msg_cinfo("Mainboard EC Version: %s\n", (char *)ec_version);
+}
+
 static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 {
 	msg_pdbg("%s \n", __func__);
 	uint8_t reg_value;
-	// uint8_t rom_data;
-	uint8_t ec_project[INFO_BUFFER_SIZE];
-	// uint8_t ec_version[INFO_BUFFER_SIZE];
 
 	ctx_data->control_port = EC_CONTROL;
 	ctx_data->data_port = EC_DATA;
@@ -139,7 +190,7 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 		break;
 	}
 
-	// TODO: This is in the EFI code. Check if it is needed. Likely not.
+	// flush the EC registers
 	INB(EC_CONTROL);
 	INB(EC_DATA);
 
@@ -156,43 +207,8 @@ static bool tuxec_init_ctx(tuxec_data_t *ctx_data)
 	ctx_data->rom_size_in_kbytes =
 		ctx_data->rom_size_in_blocks*KBYTES_PER_BLOCK;
 
-	// Get EC Project - it looks like it is crucial to read EC project
-	// prior performing any further actions like reading or writing to
-	// flash. Not sure if we need to read the EC Version as well.
-	//
-	// this read always fails, but it was present in the EFI binary; we
-	// should drop it
-	// if (!tuxec_read_byte(ctx_data, &rom_data)) {
-	// 	msg_perr("Failed to read...\n");
-	// 	return false;
-	// }
-	// msg_pdbg("discarded_rom_data: 0x%x\n", rom_data);
-
-	if (!tuxec_write_cmd(ctx_data, 0x92)) {
-		msg_perr("Failed to write cmd...\n");
-		return false;
-	}
-
-	uint8_t i;
-
-	for (i = 0; i < INFO_BUFFER_SIZE -1; ++i) {
-		if (!tuxec_read_byte(ctx_data, &ec_project[i])) {
-			msg_perr("Failed to read...\n");
-			return false;
-		}
-		if (ec_project[i] == '$') {
-			++i;
-			break;
-		}
-	}
-	ec_project[i] = '\0';
-
-	msg_pdbg("EC Project: ");
-
-	for (i = 0; i < INFO_BUFFER_SIZE && ec_project[i] != '$'; ++i) {
-		msg_pdbg("%c", ec_project[i]);
-	}
-	msg_pdbg("\n");
+	tuxec_read_project(ctx_data);
+	tuxec_read_version(ctx_data);
 
 	return true;
 }
