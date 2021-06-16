@@ -428,6 +428,7 @@ static void prettyprint_ich9_reg_hsfs(uint16_t reg_val, enum ich_chipset ich_gen
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
+	case CHIPSET_500_SERIES_TIGER_POINT:
 		break;
 	default:
 		pprint_reg(HSFS, BERASE, reg_val, ", ");
@@ -439,6 +440,7 @@ static void prettyprint_ich9_reg_hsfs(uint16_t reg_val, enum ich_chipset ich_gen
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
+	case CHIPSET_500_SERIES_TIGER_POINT:
 		pprint_reg(HSFS, PRR34_LOCKDN, reg_val, ", ");
 		pprint_reg(HSFS, WRSDIS, reg_val, ", ");
 		break;
@@ -459,6 +461,7 @@ static void prettyprint_ich9_reg_hsfc(uint16_t reg_val, enum ich_chipset ich_gen
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
+	case CHIPSET_500_SERIES_TIGER_POINT:
 		_pprint_reg(HSFC, PCH100_HSFC_FCYCLE, PCH100_HSFC_FCYCLE_OFF, reg_val, ", ");
 		pprint_reg(HSFC, WET, reg_val, ", ");
 		break;
@@ -1737,6 +1740,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
+	case CHIPSET_500_SERIES_TIGER_POINT:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 		num_pr			= 6;	/* Includes GPR0 */
@@ -1770,6 +1774,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		break;
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
+	case CHIPSET_500_SERIES_TIGER_POINT:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 		num_freg = 16;
@@ -1867,6 +1872,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_C620_SERIES_LEWISBURG:
 		case CHIPSET_300_SERIES_CANNON_POINT:
 		case CHIPSET_400_SERIES_COMET_POINT:
+		case CHIPSET_500_SERIES_TIGER_POINT:
 		case CHIPSET_APOLLO_LAKE:
 		case CHIPSET_GEMINI_LAKE:
 			tmp = mmio_readl(spibar + PCH100_REG_DLOCK);
@@ -1943,6 +1949,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			case CHIPSET_C620_SERIES_LEWISBURG:
 			case CHIPSET_300_SERIES_CANNON_POINT:
 			case CHIPSET_400_SERIES_COMET_POINT:
+			case CHIPSET_500_SERIES_TIGER_POINT:
 			case CHIPSET_APOLLO_LAKE:
 			case CHIPSET_GEMINI_LAKE:
 			case CHIPSET_BAYTRAIL:
@@ -1977,6 +1984,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			case CHIPSET_C620_SERIES_LEWISBURG:
 			case CHIPSET_300_SERIES_CANNON_POINT:
 			case CHIPSET_400_SERIES_COMET_POINT:
+			case CHIPSET_500_SERIES_TIGER_POINT:
 			case CHIPSET_APOLLO_LAKE:
 			case CHIPSET_GEMINI_LAKE:
 				break;
@@ -2010,7 +2018,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		if (ich_spi_mode == ich_auto &&
 		    (ich_gen == CHIPSET_100_SERIES_SUNRISE_POINT ||
 		     ich_gen == CHIPSET_300_SERIES_CANNON_POINT ||
-		     ich_gen == CHIPSET_400_SERIES_COMET_POINT)) {
+		     ich_gen == CHIPSET_400_SERIES_COMET_POINT ||
+		     ich_gen == CHIPSET_500_SERIES_TIGER_POINT)) {
 			msg_pdbg("Enabling hardware sequencing by default for 100+ series PCH.\n");
 			ich_spi_mode = ich_hwseq;
 		}
