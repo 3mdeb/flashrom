@@ -223,6 +223,7 @@ int it8705f_write_enable(uint8_t port);
 void board_handle_before_superio(void);
 void board_handle_before_laptop(void);
 int board_flash_enable(const char *vendor, const char *model, const char *cb_vendor, const char *cb_model);
+const struct board_match *board_match_pci_ids(enum board_match_phase phase);
 
 /* chipset_enable.c */
 int chipset_flash_enable(void);

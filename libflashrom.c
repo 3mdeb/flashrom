@@ -231,6 +231,25 @@ int flashrom_data_free(void *const p)
 	return 0;
 }
 
+/**
+ * @brief Get the HSFS register value from the Intel ICH/PCH.
+ *
+ * @param[out] hsfs Stores the value of the HSFS register
+ * @return 0 on success,
+ *         negative on error.
+ */
+int flashrom_intel_chipset_get_hsfs(uint16_t *hsfs) {
+	int ret;
+
+	ret = chipset_flash_enable();
+	if (ret != 0) {
+		msg_gerr("ERROR: Failed to initialize chipset flash.\n");
+		return ret;
+	}
+
+	return ich_get_hsfs(hsfs);
+}
+
 /** @} */ /* end flashrom-query */
 
 
@@ -401,6 +420,23 @@ bool flashrom_flag_get(const struct flashrom_flashctx *const flashctx, const enu
 		case FLASHROM_FLAG_VERIFY_WHOLE_CHIP:	return flashctx->flags.verify_whole_chip;
 		default:				return false;
 	}
+}
+
+/**
+ * @brief Unlock the flash for write access.
+ *
+ * Unlocks flash write access on a detected board in phase 3.
+ *
+ * @return 0 on success,
+ *         any other value on failure.
+ */
+int flashrom_flash_unlock(void)
+{
+	const struct board_match *board = board_match_pci_ids(P3);
+	if (board->enable != NULL)
+		return board->enable();
+	else
+		return -1;
 }
 
 /** @} */ /* end flashrom-flash */

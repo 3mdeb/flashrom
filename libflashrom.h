@@ -79,6 +79,7 @@ struct flashrom_flashchip_info *flashrom_supported_flash_chips(void);
 struct flashrom_board_info *flashrom_supported_boards(void);
 struct flashrom_chipset_info *flashrom_supported_chipsets(void);
 int flashrom_data_free(void *const p);
+int flashrom_intel_chipset_get_hsfs(uint16_t *);
 
 /** @ingroup flashrom-prog */
 struct flashrom_programmer;
@@ -100,6 +101,7 @@ enum flashrom_flag {
 };
 void flashrom_flag_set(struct flashrom_flashctx *, enum flashrom_flag, bool value);
 bool flashrom_flag_get(const struct flashrom_flashctx *, enum flashrom_flag);
+int flashrom_flash_unlock(void);
 
 int flashrom_image_read(struct flashrom_flashctx *, void *buffer, size_t buffer_len);
 int flashrom_image_write(struct flashrom_flashctx *, void *buffer, size_t buffer_len, const void *refbuffer);
