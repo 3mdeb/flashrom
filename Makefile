@@ -1183,7 +1183,7 @@ endif
 ifneq ($(NEED_RAW_ACCESS), )
 # Raw memory, MSR or PCI port I/O access.
 FEATURE_CFLAGS += -D'NEED_RAW_ACCESS=1'
-PROGRAMMER_OBJS += physmap.o hwaccess.o
+PROGRAMMER_OBJS += physmap.o hwaccess.o acpi_ec.o
 
 ifeq ($(TARGET_OS), NetBSD)
 ifeq ($(ARCH), x86)
