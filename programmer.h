@@ -310,6 +310,7 @@ int board_flash_enable(const char *vendor, const char *model, const char *cb_ven
 
 /* chipset_enable.c */
 int chipset_flash_enable(void);
+int chipset_get_hsfs_pch400(void *hsfs, struct pci_dev *const dev);
 
 /* processor_enable.c */
 int processor_flash_enable(void);
@@ -365,6 +366,9 @@ void probe_superio(void);
 int register_superio(struct superio s);
 extern enum chipbustype internal_buses_supported;
 int internal_init(void);
+#endif
+#if CONFIG_TUXEC == 1
+bool unlock_me(void);
 #endif
 
 /* hwaccess.c */

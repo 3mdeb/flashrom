@@ -37,6 +37,7 @@ option('config_rayer_spi', type : 'boolean', value : true, description : 'RayeR 
 option('config_satamv', type : 'boolean', value : true, description : 'Marvell SATA controllers')
 option('config_satasii', type : 'boolean', value : true, description : 'SiI SATA controllers')
 option('config_serprog', type : 'boolean', value : true, description : 'serprog')
+option('config_tuxec', type : 'boolean', value : true, description : 'Tuxedo EC')
 option('config_usbblaster_spi', type : 'boolean', value : true, description : 'Altera USB-Blaster dongles')
 option('config_stlinkv3_spi', type : 'boolean', value : true, description : 'STMicroelectronics STLINK-V3')
 option('config_lspcon_i2c_spi', type : 'boolean', value : false, description : 'Parade lspcon USB-C to HDMI protocol translator')

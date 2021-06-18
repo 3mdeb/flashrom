@@ -117,4 +117,7 @@ int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
 void flashrom_layout_release(struct flashrom_layout *);
 void flashrom_layout_set(struct flashrom_flashctx *, const struct flashrom_layout *);
 
+bool flashrom_unlock_me(void);
+uint16_t flashrom_tuxedo_get_hsfs(void);
+
 #endif				/* !__LIBFLASHROM_H__ */

@@ -888,8 +888,8 @@ static int enable_flash_pch100_shutdown(void *const pci_acc)
 	return 0;
 }
 
-static int enable_flash_pch100_or_c620(
-		struct pci_dev *const dev, const char *const name,
+static int enable_flash_pch100_or_c620_get_hsfs(
+		uint16_t *ret_hsfs, struct pci_dev *const dev, const char *const name,
 		const int slot, const int func, const enum ich_chipset pch_generation)
 {
 	int ret = ERROR_FATAL;
@@ -941,6 +941,10 @@ static int enable_flash_pch100_or_c620(
 			ret = 0;
 	}
 
+	uint16_t hsfs = mmio_readw(spibar + 0x04);
+	if(ret_hsfs != NULL)
+		*ret_hsfs = hsfs;
+
 	/* Suppress unknown laptop warning if we booted from SPI. */
 	if (!ret && (boot_buses & BUS_SPI))
 		laptop_ok = 1;
@@ -949,6 +953,14 @@ _freepci_ret:
 	pci_free_dev(spi_dev);
 	pacc = saved_pacc;
 	return ret;
+}
+
+static int enable_flash_pch100_or_c620(
+		struct pci_dev *const dev, const char *const name,
+		const int slot, const int func, const enum ich_chipset pch_generation)
+{
+	return enable_flash_pch100_or_c620_get_hsfs(
+		NULL, dev, name, slot, func, pch_generation);
 }
 
 static int enable_flash_pch100(struct pci_dev *const dev, const char *const name)
@@ -2165,4 +2177,10 @@ int chipset_flash_enable(void)
 	}
 
 	return ret;
+}
+
+int chipset_get_hsfs_pch400(void *hsfs, struct pci_dev *const dev)
+{
+	return enable_flash_pch100_or_c620_get_hsfs(hsfs, dev, "pch400",
+				0x1f, 5, CHIPSET_400_SERIES_COMET_POINT);
 }

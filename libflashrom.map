@@ -27,5 +27,7 @@ LIBFLASHROM_1.0 {
     flashrom_supported_programmers;
     flashrom_system_info;
     flashrom_version_info;
+    flashrom_unlock_me;
+    flashrom_tuxedo_get_hsfs;
   local: *;
 };

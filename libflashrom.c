@@ -649,3 +649,28 @@ void flashrom_layout_set(struct flashrom_flashctx *const flashctx, const struct 
 }
 
 /** @} */ /* end flashrom-layout */
+
+bool flashrom_unlock_me(void)
+{
+#if CONFIG_TUXEC
+	rget_io_perms();
+	return unlock_me();
+#else
+	return false;
+#endif /* CONFIG_TUXEC */
+}
+
+uint16_t flashrom_tuxedo_get_hsfs(void)
+{
+	uint16_t hsfs = 0;
+#if CONFIG_TUXEC
+	struct pci_dev *dev = NULL;
+
+	programmer_init(PROGRAMMER_INTERNAL, NULL);
+	dev = pci_dev_find(0x8086, 0xa0a4); // ONLY valid for Tiger Lake U
+	chipset_get_hsfs_pch400(&hsfs, dev);
+
+	programmer_shutdown();
+#endif /* CONFIG_TUXEC */
+	return hsfs;
+}

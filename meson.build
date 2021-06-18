@@ -64,6 +64,7 @@ config_rayer_spi = get_option('config_rayer_spi')
 config_satamv = get_option('config_satamv')
 config_satasii = get_option('config_satasii')
 config_serprog = get_option('config_serprog')
+config_tuxec = get_option('config_tuxec')
 config_usbblaster_spi = get_option('config_usbblaster_spi')
 config_stlinkv3_spi = get_option('config_stlinkv3_spi')
 config_lspcon_i2c_spi = get_option('config_lspcon_i2c_spi')
@@ -293,6 +294,12 @@ if config_serprog
   srcs += 'serprog.c'
   cargs += '-DCONFIG_SERPROG=1'
   need_serial = true
+endif
+if config_tuxec
+  srcs += 'ec.c'
+  srcs += 'tuxec.c'
+  cargs += '-DCONFIG_TUXEC=1'
+  need_raw_access = true
 endif
 if config_usbblaster_spi
   srcs += 'usbblaster_spi.c'

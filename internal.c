@@ -122,7 +122,7 @@ int register_superio(struct superio s)
 
 #if CONFIG_TUXEC
 
-static bool unlock_me(void)
+bool unlock_me(void)
 {
 	uint8_t data;
 
