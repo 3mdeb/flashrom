@@ -992,6 +992,9 @@ int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
 	case write_gran_1056bytes:
 		result = need_erase_gran_bytes(have, want, len, 1056, erased_value);
 		break;
+	case write_gran_64kbytes:
+		result = need_erase_gran_bytes(have, want, len, 1024 * 64, erased_value);
+		break;
 	case write_gran_1byte_implicit_erase:
 		/* Do not erase, handle content changes from anything->0xff by writing 0xff. */
 		result = 0;
@@ -1060,6 +1063,9 @@ static unsigned int get_next_write(const uint8_t *have, const uint8_t *want, uns
 		break;
 	case write_gran_1056bytes:
 		stride = 1056;
+		break;
+	case write_gran_64kbytes:
+		stride = 64 * 1024;
 		break;
 	default:
 		msg_cerr("%s: Unsupported granularity! Please report a bug at "
@@ -1894,7 +1900,6 @@ static int read_erase_write_block(struct flashctx *const flashctx,
 				      info->erase_end > info->region_end;
 	const uint8_t *newcontents = NULL;
 	int ret = 2;
-
 	/*
 	 * If the region is not erase-block aligned, merge current flash con-
 	 * tents into `info->curcontents` and a new buffer `newc`. The former

@@ -43,6 +43,7 @@ int write_opaque(struct flashctx *flash, const uint8_t *buf, unsigned int start,
 
 int erase_opaque(struct flashctx *flash, unsigned int blockaddr, unsigned int blocklen)
 {
+	msg_pdbg("%s block addr %x, blocklen %x\n", __func__, blockaddr, blocklen);
 	return flash->mst->opaque.erase(flash, blockaddr, blocklen);
 }
 

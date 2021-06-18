@@ -14,13 +14,12 @@
  * GNU General Public License for more details.
  */
 
-#include "ec.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "hwaccess.h"
+#include "ec.h"
 #include "flash.h"
+#include "hwaccess.h"
 
 /* Standard commands */
 #define EC_CMD_READ_REG   0x80 /* Read register's value */
@@ -36,7 +35,6 @@ bool ec_wait_for_ibuf(uint8_t control_port)
 
 	for (i = 0; (INB(control_port) & EC_STS_IBF) != 0; ++i) {
 		if (i == EC_MAX_STATUS_CHECKS) {
-			msg_pdbg("%s(): input buf is not empty\n", __func__);
 			return false;
 		}
 	}
@@ -50,7 +48,6 @@ bool ec_wait_for_obuf(uint8_t control_port, unsigned int max_checks)
 
 	for (i = 0; (INB(control_port) & EC_STS_OBF) == 0; ++i) {
 		if (i == max_checks) {
-			msg_pdbg("%s(): output buf is empty\n", __func__);
 			return false;
 		}
 	}

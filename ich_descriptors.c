@@ -938,10 +938,18 @@ static enum ich_chipset guess_ich_chipset_from_content(const struct ich_desc_con
 		msg_pwarn("Peculiar firmware descriptor, assuming Wildcat Point compatibility.\n");
 		return CHIPSET_9_SERIES_WILDCAT_POINT;
 	} else if (content->ICCRIBA < 0x34) {
-		if (content->NM == 6)
+		if (content->NM == 6) {
 			return CHIPSET_C620_SERIES_LEWISBURG;
-		else
-			return CHIPSET_100_SERIES_SUNRISE_POINT;
+		} else {
+			/*
+			 * FIXME: FLMAP2 changed its definition since CML,
+			 * seems to be hardcoded for Tiger Lake, is this correct?
+			 */
+			if (content->FLMAP2 == 0x001101a0)
+				return CHIPSET_400_SERIES_COMET_POINT;
+			else
+				return CHIPSET_100_SERIES_SUNRISE_POINT;
+		}
 	} else if (content->ICCRIBA == 0x34) {
 		if (content->NM == 6)
 			return CHIPSET_C620_SERIES_LEWISBURG;
