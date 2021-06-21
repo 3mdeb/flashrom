@@ -185,6 +185,11 @@ UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
 endif
+ifeq ($(CONFIG_ITE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ITE_EC=yes
+else
+override CONFIG_ITE_EC = no
+endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
 else
@@ -291,6 +296,11 @@ UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
 endif
+ifeq ($(CONFIG_ITE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ITE_EC=yes
+else
+override CONFIG_ITE_EC = no
+endif
 ifeq ($(CONFIG_NICREALTEK), yes)
 UNSUPPORTED_FEATURES += CONFIG_NICREALTEK=yes
 else
@@ -395,6 +405,11 @@ ifeq ($(CONFIG_MEC1308), yes)
 UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
+endif
+ifeq ($(CONFIG_ITE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ITE_EC=yes
+else
+override CONFIG_ITE_EC = no
 endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
@@ -531,6 +546,11 @@ ifeq ($(CONFIG_MEC1308), yes)
 UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
 else
 override CONFIG_MEC1308 = no
+endif
+ifeq ($(CONFIG_ITE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ITE_EC=yes
+else
+override CONFIG_ITE_EC = no
 endif
 endif
 
@@ -701,6 +721,9 @@ CONFIG_FT2232_SPI ?= yes
 
 # Microchip MEC1308 Embedded Controller
 CONFIG_MEC1308 ?= yes
+
+# ITE Embedded Controllers.
+CONFIG_ITE_EC ?= yes
 
 # Always enable Altera USB-Blaster dongles for now.
 CONFIG_USBBLASTER_SPI ?= yes
@@ -886,6 +909,17 @@ endif
 else
 endif
 NEED_LIBPCI += CONFIG_INTERNAL
+endif
+
+ifeq ($(CONFIG_ITE_EC), yes)
+FEATURE_CFLAGS += -D'CONFIG_ITE_EC=1'
+PROGRAMMER_OBJS += ite_ec.o
+ifeq ($(findstring it87spi.o,$(PROGRAMMER_OBJS)),)
+# Do not include it87spi.c twice
+PROGRAMMER_OBJS += it87spi.o
+endif
+NEED_RAW_ACCESS += CONFIG_ITE_EC
+NEED_LIBPCI += CONFIG_ITE_EC
 endif
 
 ifeq ($(CONFIG_ENE_LPC), yes)
