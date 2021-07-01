@@ -1,0 +1,9 @@
+prefix=/usr
+libdir=${prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include/flashrom
+
+Name: flashrom
+Description: library to interact with flashrom
+Version: 1.2
+Libs: -L${libdir} -lflashrom
+Cflags: -I${includedir}
