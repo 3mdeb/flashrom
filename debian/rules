@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+
+DEB_MAKE_INSTALL_TARGET := install PREFIX=$(CURDIR)/debian/flashrom/usr
+
+# Reduce the number of unneeded dependencies with --as-needed.
+LDFLAGS += "-Wl,--as-needed"
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+ifeq "$(DEB_HOST_ARCH)" "amd64"
+	export BUILD=
+else ifeq "$(DEB_HOST_ARCH)" "i386"
+	export BUILD=
+else
+	export BUILD=-Dconfig_atahpt=false \
+                     -Dconfig_atapromise=false \
+                     -Dconfig_atavia=false \
+                     -Dconfig_drkaiser=false \
+                     -Dconfig_gfxnvidia=false \
+                     -Dconfig_it8212=false \
+                     -Dconfig_nic3com=false \
+                     -Dconfig_nicintel_eeprom=false \
+                     -Dconfig_nicintel=false \
+                     -Dconfig_nicintel_spi=false \
+                     -Dconfig_nicnatsemi=false \
+                     -Dconfig_nicrealtek=false \
+                     -Dconfig_ogp_spi=false \
+                     -Dconfig_rayer_spi=false \
+                     -Dconfig_satamv=false \
+                     -Dconfig_satasii=false \
+                     -Dconfig_internal=false
+endif
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -Smeson -- $$BUILD
+
+override_dh_auto_build:
+	dh_auto_build -Smeson
+	make flashrom.8
+
+override_dh_auto_install:
+	dh_auto_install -Smeson

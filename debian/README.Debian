@@ -1,0 +1,13 @@
+flashrom for Debian
+-------------------
+
+WARNING: Be careful with the write and erase operations (-w and -E)! If you
+         accidentally overwrite the BIOS of your computer with a broken
+         or incorrect BIOS, your computer will be broken and cannot be
+         easily recovered! You have been warned!
+
+In case this _does_ happen to you, DO NOT REBOOT! The flashrom developers
+might be able to help you recover. They can be contacted either via IRC
+(#flashrom on irc.freenode.net) or via email (http://flashrom.org/Mailinglist).
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 05 Dec 2009 18:12:05 +0100

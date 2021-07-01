@@ -1,0 +1,439 @@
+flashrom (1.3-2ubuntu1) UNRELEASED; urgency=medium
+
+  * Initial tuxedo release
+
+ -- Michał Kopeć <mkopec@mkopec>  Thu, 01 Jul 2021 16:08:33 +0200
+
+flashrom (1.2-5) unstable; urgency=medium
+
+  [ Mario Limonciello ]
+  * debian/control:
+    - Explicitly depend on libflashrom1 in libflashrom-dev
+    - Drop ninja-build dependency (meson depends on it)
+    - Drop dh-exec dependency (not needed)
+
+  [ Pino Toscano ]
+  * debian/control:
+    - Remove extra libusb-dev dep (Closes: #951798)
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Thu, 05 Mar 2020 07:50:28 -0600
+
+flashrom (1.2-4) unstable; urgency=medium
+
+  * debian/rules:
+    - Don't build twice with meson and autotools
+    - Remove unneeded comments
+    - Only build configuration options that work on x86 on x86
+      (Fix FTBFS on many architectures)
+  * debian/*.install
+    - Use wildcards to install all the files
+  * Fix the pkgconfig location
+  * Only install the headers that are needed
+  * debian/control:
+    - Add me to uploaders.
+    - Set EFI team as new maintainer.
+  * debian/libflashrom.install:
+    - Fix installation of .so file to correct package
+    - Remove dh-exec from header
+
+ -- Mario Limonciello <mario.limonciello@dell.com>  Wed, 04 Mar 2020 20:06:53 -0600
+
+flashrom (1.2-3) unstable; urgency=medium
+
+  * Also install pkg-config file.
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Fri, 21 Feb 2020 07:57:36 +0100
+
+flashrom (1.2-2) unstable; urgency=medium
+
+  * Build additional packages. (Closes: #951589)
+  * d/control: drop CDBS.
+  * Bump debhelper version to 11.
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Wed, 19 Feb 2020 07:09:31 +0100
+
+flashrom (1.2-1) unstable; urgency=medium
+
+  * New upstream version. (Closes: #948192)
+  * Bump standards version to 4.5.0.
+  * Add Vcs fields.
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Mon, 10 Feb 2020 07:05:32 +0100
+
+flashrom (1.1-1) unstable; urgency=medium
+
+  * New upstream version.
+  * debian/watch: activated.
+  * debian/patches: fixed upstream.
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Sun, 07 Jul 2019 11:21:58 +0200
+
+flashrom (1.0.1-1) experimental; urgency=medium
+
+  * New upstream version.
+  * Apply github pr#71 to fix libusb call.
+  * Add Jeremiah C. Foster as co-maintainer.
+  * Apply patch reproducible_build, thanks Chris Lamb. (Closes: #834957)
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Thu, 31 Jan 2019 09:58:20 +0100
+
+flashrom (1.0-1) unstable; urgency=medium
+
+  * New upstream version. (Closes: #892065)
+  * New maintainer. (Closes: #919434)
+  * debian/control: add myself to Uploaders field. (Closes: #919050)
+  * Bump debhelper version to 10.
+  * Bump standards version to 4.2.1.
+
+ -- Gürkan Myczko <gurkan@phys.ethz.ch>  Thu, 04 Oct 2018 08:57:59 +0200
+
+flashrom (0.9.9+r1954-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Don't build-depend on libftdi1-dev on Hurd, it's not available.
+
+ -- Uwe Hermann <uwe@debian.org>  Sun, 13 Mar 2016 20:41:00 +0100
+
+flashrom (0.9.9~rc1+r1946-1) unstable; urgency=medium
+
+  * New upstream release (Closes: #788426, #802342).
+      + Partial support for alpha, hppa, m68k, sh, and s390 (Closes: 774405).
+  * debian/control:
+      + On kFreeBSD only build-depend on libusb-1.0-0-dev, that
+        package also includes the old libusb 0.1 API (Closes: #815947).
+        Thanks Steven Chamberlain for the patch!
+      + Don't build-depend on libusb-1.0-0-dev on Hurd, it's not available.
+      + Add pkg-config to build-depends, since it is used by the upstream
+        Makefile. Otherwise the Makefile uses hardcoded guesses, which
+        are not always correct.
+      + Drop "Recommends: dmidecode [any-i386 any-amd64 ia64 armhf]".
+        Upstream has its own code now, no longer uses dmidecode by default.
+  * debian/rules: Add "export DEB_BUILD_MAINT_OPTIONS = hardening=+all".
+  * Standards-Version: 3.9.7 (no changes required).
+  * Package description: Update list of supported devices.
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 01 Mar 2016 00:07:45 +0100
+
+flashrom (0.9.9~rc1+r1942-1) unstable; urgency=medium
+
+  * Acknowledge NMU, thanks Anibal Monsalve Salazar! (Closes: #775428).
+  * New upstream release (Closes: #786917).
+      + Dediprog SF100 support is now enabled by default (Closes: #639957).
+      + debian/patches/20_svn_version.patch: Drop, no longer needed (if the
+        tarball is generated via 'make tarball' from svn checkout).
+      + debian/patches/mips-fix-internal.patch: Drop, fixed upstream.
+  * New build-depends: libusb-1.0-0-dev (in addition to libusb-dev).
+  * Updated build-depends: libftdi-dev -> libftdi1-dev (Closes: #810372).
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 23 Feb 2016 19:34:07 +0100
+
+flashrom (0.9.7+r1852-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Fix FTBFS on mipsel.
+    Patch by Dejan Latinovic <Dejan.Latinovic@imgtec.com>.
+    Add mips-fix-internal.patch.
+    Closes: #775428.
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Wed, 14 Oct 2015 09:21:36 +0100
+
+flashrom (0.9.7+r1852-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Standards-Version: 3.9.6 (no changes required).
+  * Use 'Architecture: any', flashrom should build/work pretty much everywhere.
+  * debian/patches:
+      + 10_disable_linuxspi.patch: Drop.
+      + 20_svn_version.patch: Update.
+  * Shorten dmidecode 'Recommends' to [any-i386 any-amd64 ia64 armhf].
+  * Add missing upstream ChangeLog file (via "svn log").
+
+ -- Uwe Hermann <uwe@debian.org>  Mon, 27 Oct 2014 21:20:52 +0100
+
+flashrom (0.9.7+r1782-1) unstable; urgency=high
+
+  * New upstream release (Closes: #746734, #690478).
+  * debian/compat: Upgrade from 5 to 9.
+  * Standards-Version: 3.9.5 (no changes required).
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 03 May 2014 17:39:35 +0200
+
+flashrom (0.9.6.1+r1563-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Wed, 08 Aug 2012 23:39:15 +0200
+
+flashrom (0.9.5.2+r1546-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Fri, 29 Jun 2012 20:49:55 +0200
+
+flashrom (0.9.5.2+r1517-1) unstable; urgency=low
+
+  * New upstream release.
+  * Standards-Version: 3.9.3 (no changes required).
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 07 Apr 2012 23:27:50 +0200
+
+flashrom (0.9.5.1+r1508-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Sun, 26 Feb 2012 15:44:49 +0100
+
+flashrom (0.9.5+r1503-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/docs: Add mysteries_intel.txt.
+
+ -- Uwe Hermann <uwe@debian.org>  Mon, 20 Feb 2012 11:54:48 +0100
+
+flashrom (0.9.4+r1394-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/patches/10_svnversion.patch: Drop, no longer needed.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 28 Jul 2011 21:29:32 +0200
+
+flashrom (0.9.3+r1323-1) unstable; urgency=low
+
+  * New upstream release.
+  * Standards-Version: 3.9.2 (no changes required).
+  * debian/rules: Delete .libdeps file in 'clean' target.
+
+ -- Uwe Hermann <uwe@debian.org>  Fri, 03 Jun 2011 16:53:47 +0200
+
+flashrom (0.9.2+r1141-2) unstable; urgency=high
+
+  * Drop alpha and netbsd-alpha from the arch list for now (builds fail).
+    + Keeping "urgency=high" due to high-priority fixes in the last upload,
+      in order to allow those fixes to migrate to testing.
+    + It's unclear how well alpha (if at all) is supported upstream at this
+      point. There's a compile-time #error in the upstream code breaking
+      the build intentionally on alpha right now.
+      Alpha support will be re-enabled as soon as this has been sorted out
+      upstream, but it may take quite a while.
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 17 Aug 2010 00:50:27 +0200
+
+flashrom (0.9.2+r1141-1) unstable; urgency=high
+
+  * New upstream release. Urgency high due to multiple critical bugfixes that
+    could potentially brick the PC (or worse: laptop) of users.
+    Other important fixes include:
+    + Properly writing Atmel AT25 chips would fail on some SPI controllers.
+    + Fix breakage with brick-potential on various non-x86 architectures.
+    + Fix broken reads on Winbond W25x16, especially on some ICH SPI chipsets.
+    + Fix write failure on 3COM NICs with parallel flash.
+    + Fix "byte merge" related corruption on some VIA chipsets.
+    + Fix some format string bugs.
+    + Fix hard hang on some recent (e.g. QM57) Intel chipsets.
+  * Install new upstream udev rules file to allow users to use flashrom
+    without root permissions on some (USB-based) programmers.
+  * Standards-Version: 3.9.1 (no changes required).
+  * debian/copyright: Updates.
+
+ -- Uwe Hermann <uwe@debian.org>  Sun, 15 Aug 2010 19:07:19 +0200
+
+flashrom (0.9.2+r1028-1) unstable; urgency=low
+
+  * New upstream release.
+  * Add dmidecode as Recommends on architectures where it's available.
+  * debian/README.Debian: Fix typo.
+  * debian/copyright: Update upstream svn URL.
+
+ -- Uwe Hermann <uwe@debian.org>  Fri, 04 Jun 2010 18:13:52 +0200
+
+flashrom (0.9.1+r946-1) unstable; urgency=high
+
+  * New upstream release.
+     + Urgency high, as it fixes multiple important bugs, including such bugs
+       which can potentially "brick" a user's mainboard. Details at
+       http://www.flashrom.org/pipermail/flashrom/2010-March/002507.html.
+     + This build should have a non-truncated manpage (Closes: #566217).
+  * Standards-Version: 3.8.4 (no changes required).
+
+ -- Uwe Hermann <uwe@debian.org>  Wed, 17 Mar 2010 09:50:05 +0100
+
+flashrom (0.9.1+r873-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Wed, 20 Jan 2010 15:18:23 +0100
+
+flashrom (0.9.1+r792-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control, debian/copyright: Update upstream website to flashrom.org.
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 08 Dec 2009 10:13:35 +0100
+
+flashrom (0.9.1+r736-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 29 Sep 2009 13:09:58 +0200
+
+flashrom (0.9.1+r706-1) unstable; urgency=low
+
+  * New upstream release.
+  * Standards-Version: 3.8.3 (no changes required).
+  * debian/copyright: Update.
+
+ -- Uwe Hermann <uwe@debian.org>  Mon, 31 Aug 2009 18:32:13 +0200
+
+flashrom (0.9+r631-1) unstable; urgency=low
+
+  * New upstream release.
+     + The command line usage has changed a bit in this release:
+        + Combined operations like -wv or -Ewv are no longer allowed.
+        + The -w option automatically does an auto-verify after writing
+          (but you can also explicitly do it via 'flashrom -v file').
+        + The -E option is also automatically verified per default.
+     + Support for external programmers was added (-p), see manpage.
+     + Acer Aspire One is now marked unsupported upstream (Closes: #528308).
+  * Add build-dependency on libftdi-dev, flashrom now supports an
+    external libftdi-based programmer (ft2232spi).
+  * debian/patches/20_drop_svndef.patch: Drop, we use 'make tarball' now,
+    which properly handles svn version printing in flashrom.
+  * Standards-Version: 3.8.2 (no changes required).
+  * debian/copyright: Update.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 25 Jun 2009 14:18:53 +0200
+
+flashrom (0.9+r544-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/patches/10_makefile.patch: Drop, no longer needed.
+  * debian/copyright: Update.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 21 May 2009 21:34:03 +0200
+
+flashrom (0.9+r446-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 11 Apr 2009 16:28:33 +0200
+
+flashrom (0.0+r3844-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 27 Dec 2008 09:05:27 +0100
+
+flashrom (0.0+r3734-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 08 Nov 2008 01:38:08 +0100
+
+flashrom (0.0+r3613-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/watch: Add dummy file to silence lintian (we track svn revisions).
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 27 Sep 2008 19:28:36 +0200
+
+flashrom (0.0+r3397-1) unstable; urgency=low
+
+  * New upstream release.
+  * Standards-Version: 3.8.0 (no changes required).
+
+ -- Uwe Hermann <uwe@debian.org>  Mon, 30 Jun 2008 17:11:25 +0200
+
+flashrom (0.0+r3274-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control:
+    + pciutils-dev was renamed to libpci-dev (Closes: #478379).
+    + Drop ia64 from architectures list for now, unlikely to work.
+    + Don't link with -lz anymore, don't build-depend on zlib1g-dev.
+      We don't explicitly need zlib, libpci-dev now properly depends on it.
+  * Add upstream changelog ('svn log' output) to the package (Closes: #467398).
+
+ -- Uwe Hermann <uwe@debian.org>  Sun, 04 May 2008 00:34:44 +0200
+
+flashrom (0.0+r3112-2) unstable; urgency=low
+
+  * Fix debian/rules to make it work on Ubuntu, too (Closes: #466994).
+
+ -- Uwe Hermann <uwe@debian.org>  Sat, 23 Feb 2008 21:17:09 +0100
+
+flashrom (0.0+r3112-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 21 Feb 2008 00:11:54 +0100
+
+flashrom (0.0+r3073-1) unstable; urgency=low
+
+  * New upstream release (Closes: #462248).
+    + Flashrom is now installed in /usr/sbin instead of /usr/bin.
+    + The manpage is now in section 8 (not 1).
+    + Fix broken references to old bug tracker URL (Closes: #460554).
+  * Restrict list of architectures to the known-working ones for now.
+    More architectures will gradually be re-added if we're sure they work.
+    + These are known to work: amd64, i386, kfreebsd-amd64, kfreebsd-i386
+    + These should work (untested, though): alpha, hurd-i386, ia64,
+      netbsd-alpha, netbsd-i386
+    + These are disabled for now, as flashrom will very likely not work: arm,
+      armel, armeb, hppa, m32r, m68k, mips, mipsel, powerpc, sh, sparc, s390
+  * Standards-Version: 3.7.3 (no changes required).
+  * debian/control:
+     + Add Homepage field.
+     + Update package description.
+  * debian/copyright: Update URLs and list of authors.
+  * Simplified packaging a bit.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 24 Jan 2008 13:47:48 +0100
+
+flashrom (0.0+r2769-1) unstable; urgency=low
+
+  * New upstream release.
+  * Do not attempt to build flashrom on S/390, as it doesn't build
+    and is not useful there anyway (Closes: #404342, #418712).
+    It is yet to be determined on which other architectures flashrom can
+    work and on which not.
+  * Honour DEB_BUILD_OPTIONS=nostrip variable by removing hardcoded 'strip'
+    invocation in the Makefile and letting cdbs handle it (Closes: #436850).
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 11 Sep 2007 17:54:11 +0200
+
+flashrom (0.0+r2739-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Uwe Hermann <uwe@debian.org>  Sun, 15 Jul 2007 15:23:51 +0200
+
+flashrom (0.0+r2601-1) unstable; urgency=low
+
+  * New upstream release.
+  * Drop a few patches which are now merged upstream.
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 10 Apr 2007 12:38:58 +0200
+
+flashrom (0.0+r2526-2) unstable; urgency=medium
+
+  * Add missing build dependency on zlib1g-dev (Closes: #403322).
+    Thanks Julien Danjou <acid@debian.org> and
+    Alex de Oliveira Silva <enerv@host.sk>.
+  * Standards-Version: 3.7.2.2 (no changes required).
+
+ -- Uwe Hermann <uwe@debian.org>  Tue, 19 Dec 2006 10:36:04 +0100
+
+flashrom (0.0+r2526-1) unstable; urgency=low
+
+  * New upstream release.
+  * Do not compile in DoC support (it's considered unsupported upstream).
+    This will also make the flash part identification process a lot faster.
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 14 Dec 2006 18:37:07 +0100
+
+flashrom (0.0+r2504-1) unstable; urgency=low
+
+  * Initial release (Closes: #399893).
+
+ -- Uwe Hermann <uwe@debian.org>  Thu, 14 Dec 2006 16:56:49 +0100
+

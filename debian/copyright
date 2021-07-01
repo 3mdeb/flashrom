@@ -1,0 +1,285 @@
+This package was debianized by Uwe Hermann <uwe@debian.org> on
+Thu, 23 Nov 2006 14:48:04 +0100.
+
+It was downloaded from:
+
+   svn://flashrom.org/flashrom/trunk
+
+Upstream Authors:
+
+   Various flashrom developers
+
+-------------------------------------------------------------------------------
+
+Files: *
+Copyright: © 2000 Silicon Integrated System Corporation
+License: GPL-2+
+
+On Debian systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL-2'.
+
+-------------------------------------------------------------------------------
+
+Files: atahpt.c, gfxnvidia.c, nic3com.c, pcidev.c, util/z60_flashrom.rules
+Copyright: © 2009-2010 Uwe Hermann <uwe@hermann-uwe.de>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: bitbang_spi.c, buspirate_spi.c, dediprog.c, processor_enable.c, rayer_spi.c, chipdrivers.h, hwaccess.h, spi.h, mcp6x_spi.c
+Copyright: © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: board_enable.c
+Copyright: © 2005-2007 coresystems GmbH <stepan@coresystems.de>
+           © 2006 Uwe Hermann <uwe@hermann-uwe.de>
+           © 2007-2009 Luc Verhaegen <libv@skynet.be>
+           © 2007 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: cbtable.c
+Copyright: © 2002 Steven James <pyro@linuxlabs.com>
+           © 2002 Linux Networx
+           © 2006-2009 coresystems GmbH
+           © 2010 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: chipset_enable.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2005-2009 coresystems GmbH <stepan@coresystems.de>
+           © 2006 Uwe Hermann <uwe@hermann-uwe.de>
+           © 2007-2009 Carl-Daniel Hailfinger
+           © 2009 Kontron Modular Computers GmbH
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: cli_classic.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2004 Tyan Corp <yhlu@tyan.com>
+           © 2005-2008 coresystems GmbH
+           © 2008-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: cli_output.c
+Copyright: © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: dmi.c
+Copyright: © 2009-2010 Michael Karcher
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: drkaiser.c, nicrealtek.c
+Copyright: © 2009 Joerg Fischer <turboj@web.de>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: dummyflasher.c, hwaccess.c, internal.c, programmer.c, programmer.h
+Copyright: © 2007-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: coreboot_tables.h
+Copyright: © 2002 Linux Networx
+           © 2005-2007 coresystems GmbH
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: flashchips.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2004 Tyan Corp
+           © 2005-2008 coresystems GmbH <stepan@openbios.org>
+           © 2006-2009 Carl-Daniel Hailfinger
+           © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: flashchips.h, flash.h
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2000 Ronald G. Minnich <rminnich@gmail.com>
+           © 2005-2009 coresystems GmbH <stepan@openbios.org>
+           © 2006-2009 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: flashrom.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2004 Tyan Corp <yhlu@tyan.com>
+           © 2005-2008 coresystems GmbH
+	   © 2008,2009 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: ft2232_spi.c
+Copyright: © 2009 Paul Fox <pgf@laptop.org>
+           © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: ichspi.c
+Copyright: © 2008 Stefan Wildemann <stefan.wildemann@kontron.com>
+           © 2008 Claus Gindhart <claus.gindhart@kontron.com>
+           © 2008 Dominik Geyer <dominik.geyer@kontron.com>
+           © 2008 coresystems GmbH <info@coresystems.de>
+           © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: it87spi.c
+Copyright: © 2007-2009 Carl-Daniel Hailfinger
+           © 2008 Ronald Hoogenboom <ronald@zonnet.nl>
+           © 2008 coresystems GmbH
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: jedec.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2006 Giampiero Giancipoli <gianci@email.it>
+           © 2006 coresystems GmbH <info@coresystems.de>
+           © 2007 Carl-Daniel Hailfinger
+           © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: layout.c, w39v080fa.c
+Copyright: © 2005-2008 coresystems GmbH
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: Makefile, spi25.c, spi.c
+Copyright: © 2005-2008 coresystems GmbH
+           © 2007-2010 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: nicnatsemi.c
+Copyright: © 2010 Andrew Morgan <ziltro@ziltro.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: physmap.c
+Copyright: © 2008-2009 Peter Stuge <peter@stuge.se>
+           © 2009 coresystems GmbH
+           © 2010 Carl-Daniel Hailfinger
+           © 2010 Rudolf Marek <r.marek@assembler.cz>
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: pm49fl00x.c
+Copyright: © 2004 Tyan Corporation
+           © 2007 Nikolay Petukhov <nikolay.petukhov@gmail.com>
+           © 2007 Reinder E.N. de Haan <lb_reha@mveas.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: print.c, print_wiki.c
+Copyright: © 2009 Uwe Hermann <uwe@hermann-uwe.de>
+           © 2009 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: satasii.c
+Copyright: © 2009 Rudolf Marek <r.marek@assembler.cz>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: sb600spi.c
+Copyright: © 2008 Wang Qingpei <Qingpei.Wang@amd.com>
+           © 2008 Joe Bao <Zheng.Bao@amd.com>
+           © 2008 Advanced Micro Devices, Inc
+           © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: serial.c, serprog.c
+Copyright: © 2009 Urja Rannikko <urjaman@gmail.com>
+           © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: sst28sf040.c, sst49lfxxxc.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2005-2007 coresystems GmbH <stepan@openbios.org>
+           © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: sst_fwhub.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2009 Kontron Modular Computers
+           © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: stm50flw0x0x.c
+Copyright: © 2008 Claus Gindhart <claus.gindhart@kontron.com>
+           © 2009 Sean Nelson <audiohacked@gmail.com>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: udelay.c
+Copyright: © 2000 Silicon Integrated System Corporation
+           © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: w29ee011.c
+Copyright: © 2007 Markus Boas <ryven@ryven.de>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: w39v040c.c
+Copyright: © 2008-2009 Peter Stuge <peter@stuge.se>
+License: GPL-2+
+
+-------------------------------------------------------------------------------
+
+Files: wbsio_spi.c
+Copyright: © 2008 Peter Stuge <peter@stuge.se>
+Copyright: © 2009-2010 Carl-Daniel Hailfinger
+License: GPL-2
+
+-------------------------------------------------------------------------------
+
+Files: debian/*
+Copyright: © 2006-2014 Uwe Hermann <uwe@debian.org>
+License: PD
+   The packaging done by Uwe Hermann <uwe@debian.org> is hereby
+   released as public domain.
+
