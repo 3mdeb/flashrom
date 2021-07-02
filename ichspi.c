@@ -1715,6 +1715,16 @@ static const struct opaque_master opaque_master_ich_hwseq = {
 	.erase = ich_hwseq_block_erase,
 };
 
+int ich_get_hsfs(uint16_t* hsfs)
+{
+	if (!ich_spibar || !hsfs)
+		return -1;
+
+	*hsfs = mmio_readw(ich_spibar + ICH9_REG_HSFS);
+
+	return 0;
+}
+
 int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 {
 	unsigned int i;

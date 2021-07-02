@@ -645,6 +645,16 @@ buses like above. In this case you can use
 .B "  flashrom \-p internal:laptop=this_is_not_a_laptop"
 .sp
 to tell flashrom (at your own risk) that it is not running on a laptop.
+.sp
+Parameter
+.B unlock_intel_me
+can be used to unlock full flash udpates on Clevo/Tuxedo laptops. The flashrom
+will request the Embedded Controller to assert Flash Descriptor Security
+Override pin and unlock all flash regions. The pin is being asserted after
+power off and power on cycle. ME remains unlocked until the next power off
+power on cycle, but the pin is being deasserted on next reset. Syntax is
+.sp
+.B "  flashrom \-p internal:unlock_intel_me=yes"
 .SS
 .BR "dummy " programmer
 .IP

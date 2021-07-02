@@ -26,6 +26,7 @@
 #include "flash.h"
 #include "programmer.h"
 #include "hwaccess.h"
+#include "acpi_ec.h"
 
 #if defined(__i386__) || defined(__x86_64__)
 /*
@@ -2306,6 +2307,60 @@ static int p2_whitelist_laptop(void)
 	return 0;
 }
 
+static int clevo_unlock_me(void)
+{
+	uint8_t data1, data2;
+	uint16_t hsfs;
+	char *arg;
+
+	p2_whitelist_laptop();
+
+	arg = extract_programmer_param("unlock_intel_me");
+	if (arg) {
+		if (strcmp(arg, "yes")) {
+			free(arg);
+			return 0;
+		}
+	} else {
+		return 0;
+	}
+	free(arg);
+
+	/* Check FDOPSS and FDV */
+	if (!ich_get_hsfs(&hsfs)) {
+		if (!(hsfs & (1 << 13)) && (hsfs & (1 << 14))) {
+			msg_pinfo("ME is already unlocked\n");
+			return 0;
+		}
+	}
+
+	do {
+		ec_read_reg(0xda, &data1, EC_MAX_STATUS_CHECKS);
+		internal_delay(300000);
+		ec_read_reg(0xda, &data2, EC_MAX_STATUS_CHECKS);
+	} while (data1 != data2);
+
+	msg_pdbg("Unlocking ME...\n");
+	ec_write_reg(0xda, data1 | 8, EC_MAX_STATUS_CHECKS);
+
+	do {
+		internal_delay(300000);
+		ec_read_reg(0xda, &data2, EC_MAX_STATUS_CHECKS);
+	} while (data2 != (data1 | 8));
+
+	msg_pinfo("ME Unlocked successfully\n"
+		  "The system must be powered off and powered on again for the operation to take effect.\n"
+		  "ME will remain unlocked until next boot.\n");
+
+	/* Program automatic power on after power off */
+	ec_write_cmd(0x97, EC_MAX_STATUS_CHECKS);
+	ec_write_byte(0, EC_MAX_STATUS_CHECKS);
+	ec_write_byte(5, EC_MAX_STATUS_CHECKS); /* 5 seconds in S5 state */
+
+	/* Bail out since we do not have full flash access */
+	return -1;
+}
+
 #endif
 
 /*
@@ -2527,6 +2582,8 @@ const struct board_match board_matches[] = {
 	{0x1106, 0x0259, 0x1106, 0xAA07,  0x1106, 0x3227, 0x1106, 0xAA07, NULL,         NULL, NULL,           P3, "VIA",         "EPIA EK",               0,   NT, via_vt823x_gpio9_raise},
 	{0x1106, 0x3177, 0x1106, 0xAA01,  0x1106, 0x3123, 0x1106, 0xAA01, NULL,         NULL, NULL,           P3, "VIA",         "EPIA M/MII/...",        0,   OK, via_vt823x_gpio15_raise},
 	{0x1106, 0x0259, 0x1106, 0x3227,  0x1106, 0x3065, 0x1106, 0x3149, NULL,         NULL, NULL,           P3, "VIA",         "EPIA-N/NL",             0,   OK, via_vt823x_gpio9_raise},
+	{0x8086, 0xa082, 0x1558, 0x14a1,  0x8086, 0x9a14, 0x1558, 0x14a1, NULL,         NULL, NULL,           P3, "TUXEDO",      "InfinityBook S 14 Gen6", 0,  OK, clevo_unlock_me},
+	{0x8086, 0xa082, 0x1558, 0x51a1,  0x8086, 0x9a14, 0x1558, 0x51a1, NULL,         NULL, NULL,           P3, "TUXEDO",      "InfinityBook S 15 Gen6", 0,  OK, clevo_unlock_me},
 #endif
 	{     0,      0,      0,      0,       0,      0,      0,      0, NULL,         NULL, NULL,           P3, NULL,          NULL,                    0,   NT, NULL}, /* end marker */
 };

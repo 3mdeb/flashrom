@@ -328,6 +328,7 @@ endif
 if need_raw_access
   srcs += 'hwaccess.c'
   srcs += 'physmap.c'
+  srcs += 'acpi_ec.c'
   cargs += '-DNEED_RAW_ACCESS=1'
 endif
 
