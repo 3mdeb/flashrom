@@ -47,6 +47,7 @@ config_gfxnvidia = get_option('config_gfxnvidia')
 config_raiden_debug_spi = get_option('config_raiden_debug_spi')
 config_internal = get_option('config_internal')
 config_it8212 = get_option('config_it8212')
+config_ite_ec = get_option('config_ite_ec')
 config_linux_mtd = get_option('config_linux_mtd')
 config_linux_spi = get_option('config_linux_spi')
 config_mec1308 = get_option('config_mec1308')
@@ -220,6 +221,11 @@ endif
 if config_it8212
   srcs += 'it8212.c'
   cargs += '-DCONFIG_IT8212=1'
+endif
+if config_ite_ec
+  srcs += 'ite_ec.c'
+  need_raw_access = true
+  cargs += '-DCONFIG_ITE_EC=1'
 endif
 if config_linux_mtd
   srcs += 'linux_mtd.c'
