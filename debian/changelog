@@ -1,6 +1,6 @@
-flashrom (1.3-2ubuntu1) UNRELEASED; urgency=medium
+flashrom (1.3-6ubuntu1) UNRELEASED; urgency=medium
 
-  * Initial tuxedo release
+  * Replaced tuxec programmer with upstreamed ite_ec programmer
 
  -- Michał Kopeć <mkopec@mkopec>  Thu, 01 Jul 2021 16:08:33 +0200
 
